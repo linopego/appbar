@@ -1,26 +1,65 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { verifyStaffToken, STAFF_COOKIE_NAME } from "@/lib/auth/staff-edge";
+import { verifyAdminToken, ADMIN_COOKIE_NAME } from "@/lib/auth/admin-edge";
 
-// Auth.js database strategy non è validabile in Edge runtime (richiede l'adapter
-// Prisma che è Node-only). Qui facciamo una verifica leggera della presenza del
-// cookie di sessione; la validazione reale avviene in page/layout server-side
-// tramite `auth()` (Node runtime).
-
-const PROTECTED_CLIENT_ROUTES = ["/profilo"];
-
-const SESSION_COOKIE_NAMES = [
+const NEXTAUTH_COOKIE_NAMES = [
   "authjs.session-token",
   "__Secure-authjs.session-token",
+  "next-auth.session-token",
+  "__Secure-next-auth.session-token",
 ];
 
-export default function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const hasSessionCookie = SESSION_COOKIE_NAMES.some(
-    (name) => !!req.cookies.get(name)?.value
-  );
+const PROTECTED_CUSTOMER_ROUTES = ["/profilo", "/ordine"];
 
-  if (PROTECTED_CLIENT_ROUTES.some((route) => pathname.startsWith(route))) {
-    if (!hasSessionCookie) {
-      const loginUrl = new URL("/login", req.nextUrl);
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // === Rotte super-admin ===
+  if (pathname.startsWith("/superadmin")) {
+    if (pathname === "/superadmin/login") return NextResponse.next();
+
+    const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/superadmin/login", req.url));
+    }
+    const payload = await verifyAdminToken(token);
+    if (!payload) {
+      const res = NextResponse.redirect(new URL("/superadmin/login", req.url));
+      res.cookies.delete(ADMIN_COOKIE_NAME);
+      return res;
+    }
+    return NextResponse.next();
+  }
+
+  // === Rotte staff ===
+  if (pathname.startsWith("/staff/")) {
+    const venueSlug = pathname.split("/")[2];
+    if (!venueSlug) return NextResponse.next();
+
+    // La pagina di login PIN (`/staff/[slug]`) è pubblica
+    if (pathname === `/staff/${venueSlug}`) return NextResponse.next();
+
+    const token = req.cookies.get(STAFF_COOKIE_NAME)?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL(`/staff/${venueSlug}`, req.url));
+    }
+    const payload = await verifyStaffToken(token);
+    if (!payload || payload.venueSlug !== venueSlug) {
+      const res = NextResponse.redirect(new URL(`/staff/${venueSlug}`, req.url));
+      res.cookies.delete(STAFF_COOKIE_NAME);
+      return res;
+    }
+    return NextResponse.next();
+  }
+
+  // === Rotte cliente protette ===
+  // Cookie-presence check (validazione reale via auth() server-side nelle pagine)
+  if (PROTECTED_CUSTOMER_ROUTES.some((r) => pathname.startsWith(r))) {
+    const hasNextAuthCookie = NEXTAUTH_COOKIE_NAMES.some(
+      (name) => !!req.cookies.get(name)?.value
+    );
+    if (!hasNextAuthCookie) {
+      const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -30,5 +69,10 @@ export default function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/staff/:path*",
+    "/superadmin/:path*",
+    "/profilo/:path*",
+    "/ordine/:path*",
+  ],
 };
