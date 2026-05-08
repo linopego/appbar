@@ -7,8 +7,281 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Placeholder — schema completo aggiunto nel prossimo prompt
-model Placeholder {
-  id        Int      @id @default(autoincrement())
+// =====================================================
+// VENUE & LISTINO
+// =====================================================
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  priceTiers PriceTier[]
+  operators  Operator[]
+  orders     Order[]
+  tickets    Ticket[]
+}
+
+model PriceTier {
+  id        String   @id @default(cuid())
+  venueId   String
+  name      String   // "Acqua", "Analcolico", "Birra", "Red Bull", "Drink", "Drink Premium"
+  price     Decimal  @db.Decimal(10, 2)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venue   Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([venueId, name])
+  @@index([venueId, active])
+}
+
+// =====================================================
+// CLIENTI (NextAuth-compatible)
+// =====================================================
+
+model Customer {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  phone         String?
+  firstName     String?
+  lastName      String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // soft-delete GDPR
+
+  accounts CustomerAccount[]
+  sessions CustomerSession[]
+  orders   Order[]
+  tickets  Ticket[]
+
+  @@index([email])
+}
+
+// Tabelle NextAuth standard, prefissate "Customer" per separarle dal resto
+model CustomerAccount {
+  id                String  @id @default(cuid())
+  customerId        String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model CustomerSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  customerId   String
+  expires      DateTime
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// =====================================================
+// ORDINI & TICKET
+// =====================================================
+
+model Order {
+  id              String      @id @default(cuid())
+  customerId      String
+  venueId         String
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  stripeSessionId String      @unique
+  stripePaymentId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  paidAt          DateTime?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  venue    Venue    @relation(fields: [venueId], references: [id])
+  tickets  Ticket[]
+  refunds  Refund[]
+
+  @@index([customerId, createdAt])
+  @@index([venueId, createdAt])
+  @@index([status])
+}
+
+model Ticket {
+  id          String       @id @default(cuid())
+  orderId     String
+  customerId  String
+  venueId     String
+  priceTierId String
+  qrToken     String       @unique // UUID v4
+  status      TicketStatus @default(ACTIVE)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  consumedBy  String?      // operatorId
+  refundedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  order     Order     @relation(fields: [orderId], references: [id])
+  customer  Customer  @relation(fields: [customerId], references: [id])
+  venue     Venue     @relation(fields: [venueId], references: [id])
+  priceTier PriceTier @relation(fields: [priceTierId], references: [id])
+  operator  Operator? @relation(fields: [consumedBy], references: [id])
+
+  @@index([qrToken])
+  @@index([customerId, status])
+  @@index([venueId, status])
+  @@index([orderId])
+  @@index([expiresAt])
+}
+
+model Refund {
+  id              String           @id @default(cuid())
+  orderId         String
+  amount          Decimal          @db.Decimal(10, 2)
+  ticketIds       String[]
+  reason          String           @db.Text
+  customerNote    String?          @db.Text
+  managerNote     String?          @db.Text
+  stripeRefundId  String?          @unique
+  status          RefundStatus     @default(PENDING)
+  requestedAt     DateTime         @default(now())
+  processedAt     DateTime?
+  processedBy     String?          // operator.id o adminUser.id; tipo distinto in processedByType
+  processedByType ProcessedByType?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+}
+
+// =====================================================
+// STAFF (operatori al banco)
+// =====================================================
+
+model Operator {
+  id          String       @id @default(cuid())
+  venueId     String
+  name        String
+  pinHash     String       // bcrypt
+  role        OperatorRole
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lastLoginAt DateTime?
+
+  venue   Venue    @relation(fields: [venueId], references: [id])
+  tickets Ticket[]
+
+  @@index([venueId, active])
+}
+
+// =====================================================
+// SUPER-ADMIN (cross-venue)
+// =====================================================
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  totpSecret   String?
+  totpEnabled  Boolean   @default(false)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+
+  auditLogs AdminAuditLog[]
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  action      String   // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
+  targetType  String?  // "Ticket", "Order", "Operator", "Venue", "PriceTier"
+  targetId    String?
+  payload     Json?    // snapshot del contesto
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+
+  @@index([adminUserId, createdAt])
+  @@index([targetType, targetId])
+  @@index([action, createdAt])
+}
+
+// =====================================================
+// STRIPE EVENT TRACKING (idempotency)
+// =====================================================
+
+model StripeEvent {
+  id          String   @id // event.id di Stripe
+  type        String
+  processedAt DateTime @default(now())
+  payload     Json
+
+  @@index([type, processedAt])
+}
+
+// =====================================================
+// ENUMS
+// =====================================================
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum TicketStatus {
+  ACTIVE
+  CONSUMED
+  EXPIRED
+  REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
+}
+
+enum OperatorRole {
+  BARISTA
+  CASSIERE
+  MANAGER
+}
+
+enum ProcessedByType {
+  OPERATOR
+  ADMIN_USER
+  SYSTEM
 }
