@@ -64,6 +64,7 @@ model Customer {
   tickets  Ticket[]
 
   @@index([email])
+  @@map("users")
 }
 
 // Tabelle NextAuth standard, prefissate "Customer" per separarle dal resto
@@ -84,6 +85,7 @@ model CustomerAccount {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model CustomerSession {
@@ -92,6 +94,8 @@ model CustomerSession {
   customerId   String
   expires      DateTime
   customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model VerificationToken {
@@ -100,6 +104,7 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 // =====================================================
