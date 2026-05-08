@@ -1,6 +1,4 @@
 import NextAuth from "next-auth";
+import { authConfig } from "./config";
 
-// Provider configuration aggiunta nel prossimo prompt
-export const { auth, handlers, signIn, signOut } = NextAuth({
-  providers: [],
-});
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);

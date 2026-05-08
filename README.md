@@ -41,6 +41,23 @@ pnpm build
 pnpm start
 ```
 
+## Configurazione auth cliente
+
+Per abilitare il login cliente in dev:
+
+1. Crea un progetto su [Google Cloud Console](https://console.cloud.google.com), abilita Google OAuth, aggiungi `http://localhost:3000/api/auth/callback/google` come redirect URI autorizzato.
+2. Copia client ID e secret in `.env.local` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+3. Crea un account [Resend](https://resend.com), verifica un dominio (o usa il dominio di test), copia l'API key in `RESEND_API_KEY` e imposta `EMAIL_FROM`.
+4. Genera `NEXTAUTH_SECRET` e mettilo in `.env.local`:
+   ```bash
+   openssl rand -base64 32
+   ```
+5. Avvia: `pnpm dev`
+6. Vai su `/login` e prova il flow magic link / Google.
+
+L'auth staff (PIN operatori) e l'auth super-admin (email + 2FA) sono sistemi separati,
+non gestiti da NextAuth.
+
 ## Test
 
 ```bash
