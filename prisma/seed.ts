@@ -138,6 +138,7 @@ async function main() {
         name: SUPER_ADMIN_NAME,
         passwordHash,
         totpEnabled: false,
+        mustChangePassword: true,
         active: true,
       },
     });

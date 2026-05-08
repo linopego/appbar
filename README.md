@@ -55,8 +55,52 @@ Per abilitare il login cliente in dev:
 5. Avvia: `pnpm dev`
 6. Vai su `/login` e prova il flow magic link / Google.
 
-L'auth staff (PIN operatori) e l'auth super-admin (email + 2FA) sono sistemi separati,
-non gestiti da NextAuth.
+## Auth staff e super-admin
+
+Tre sistemi auth coesistono nell'app, ciascuno con un proprio cookie indipendente:
+
+| Sistema | Cookie | Scopo | Durata |
+|---|---|---|---|
+| Cliente | `authjs.session-token` (NextAuth) | Acquisto ticket | 30 giorni |
+| Staff | `staff-session` (JWT custom) | POS operatori al banco | 12 ore |
+| Super-admin | `admin-session` (JWT custom) | Pannello amministrazione | 1 ora |
+
+I tre cookie sono separati per dominio applicativo: un utente può tecnicamente
+avere tutti e tre simultaneamente (es. il super-admin che è anche cliente).
+
+### Variabili d'ambiente aggiuntive
+
+```bash
+# Genera con: openssl rand -base64 32
+STAFF_JWT_SECRET=
+ADMIN_JWT_SECRET=
+```
+
+### Testare il login operatore
+
+1. Esegui il seed: `pnpm db:seed`
+2. Vai su `/staff/casa-dei-gelsi` (o `studios-deco`, `villa-peggy`)
+3. Seleziona "Manager Demo" (PIN `1234`) o "Barista Demo" (PIN `5678`)
+4. Sessione 12h, redirect a `/staff/[slug]/pos`
+
+### Testare il login super-admin
+
+1. Email: `linopegoraro.dir@gmail.com`
+2. Password: quella temporanea stampata dal seed (cambialo nel DB se l'hai persa)
+3. Al primo login viene mostrato un QR code per il setup TOTP — scansiona con
+   Google Authenticator / 1Password / Authy
+4. Inserisci il codice 6 cifre per completare il setup
+5. Force-redirect su `/superadmin/cambio-password` (mustChangePassword)
+6. Imposta una password nuova (≥12 char, maiuscole/minuscole/numeri)
+7. Login successivi: email + password + codice TOTP
+
+### Logout
+
+- Cliente: bottone "Esci" su `/profilo` (chiama NextAuth `signOut`)
+- Staff: bottone "Esci" su `/staff/[slug]/pos` (`POST /api/staff/logout`)
+- Super-admin: bottone "Esci" su `/superadmin` (`POST /api/superadmin/logout`)
+
+I cookie sono `httpOnly`, `sameSite: lax`, `secure` in produzione.
 
 ## Test
 
