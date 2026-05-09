@@ -16,7 +16,7 @@ model Venue {
   name                  String
   slug                  String   @unique
   active                Boolean  @default(true)
-  refundBlockedWindows  Json?    // [{ day: 0-6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }]
+  refundBlockedWindows  Json? // [{ day: 0-6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }]
   refundBlockedTimezone String   @default("Europe/Rome")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -30,7 +30,7 @@ model Venue {
 model PriceTier {
   id        String   @id @default(cuid())
   venueId   String
-  name      String   // "Acqua", "Analcolico", "Birra", "Red Bull", "Drink", "Drink Premium"
+  name      String // "Acqua", "Analcolico", "Birra", "Red Bull", "Drink", "Drink Premium"
   price     Decimal  @db.Decimal(10, 2)
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
@@ -162,7 +162,7 @@ model Ticket {
   status      TicketStatus @default(ACTIVE)
   expiresAt   DateTime
   consumedAt  DateTime?
-  consumedBy  String?      // operatorId
+  consumedBy  String? // operatorId
   refundedAt  DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -192,7 +192,7 @@ model Refund {
   status          RefundStatus     @default(PENDING)
   requestedAt     DateTime         @default(now())
   processedAt     DateTime?
-  processedBy     String?          // operator.id o adminUser.id; tipo distinto in processedByType
+  processedBy     String? // operator.id o adminUser.id; tipo distinto in processedByType
   processedByType ProcessedByType?
 
   order Order @relation(fields: [orderId], references: [id])
@@ -210,7 +210,7 @@ model Operator {
   venueId     String
   name        String
   email       String?
-  pinHash     String       // bcrypt
+  pinHash     String // bcrypt
   role        OperatorRole
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
@@ -244,16 +244,15 @@ model AdminUser {
   auditLogs AdminAuditLog[]
 }
 
-
 model AdminAuditLog {
   id          String    @id @default(cuid())
   adminUserId String?
   operatorId  String?
   actorType   ActorType @default(ADMIN_USER)
-  action      String    // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
-  targetType  String?   // "Ticket", "Order", "Operator", "Venue", "PriceTier"
+  action      String // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
+  targetType  String? // "Ticket", "Order", "Operator", "Venue", "PriceTier"
   targetId    String?
-  payload     Json?     // snapshot del contesto
+  payload     Json? // snapshot del contesto
   ipAddress   String?
   userAgent   String?   @db.Text
   createdAt   DateTime  @default(now())
@@ -322,4 +321,26 @@ enum ActorType {
   ADMIN_USER
   OPERATOR
   SYSTEM
+}
+
+model EmailLog {
+  id           String      @id @default(cuid())
+  to           String
+  subject      String
+  template     String
+  resendId     String?
+  status       EmailStatus @default(SENT)
+  errorMessage String?     @db.Text
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+
+  @@index([to, createdAt])
+  @@index([template, createdAt])
+  @@index([status, createdAt])
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  BOUNCED
 }

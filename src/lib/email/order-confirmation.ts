@@ -41,12 +41,25 @@ export async function sendOrderConfirmationEmail(orderId: string) {
     orderUrl,
   });
 
-  const { error } = await resend.emails.send({
+  const subject = `I tuoi ticket — ${order.venue.name}`;
+  const { data, error } = await resend.emails.send({
     from,
     to: order.customer.email,
-    subject: `I tuoi ticket — ${order.venue.name}`,
+    subject,
     html,
   });
+
+  await db.emailLog.create({
+    data: {
+      to: order.customer.email,
+      subject,
+      template: "order-confirmation",
+      resendId: data?.id ?? null,
+      status: error ? "FAILED" : "SENT",
+      errorMessage: error?.message ?? null,
+      metadata: { orderId: order.id, venueId: order.venueId },
+    },
+  }).catch(() => {});
 
   if (error) {
     throw new Error(`Resend error: ${error.message}`);

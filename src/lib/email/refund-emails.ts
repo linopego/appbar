@@ -1,9 +1,32 @@
+import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { resend } from "./client";
 import { renderRefundRequestedHtml } from "./templates/refund-requested";
 import { renderRefundApprovedHtml } from "./templates/refund-approved";
 import { renderRefundRejectedHtml } from "./templates/refund-rejected";
 import { renderRefundNewForManagerHtml } from "./templates/refund-new-for-manager";
 import { formatEur } from "@/lib/utils/money";
+
+async function logEmail(opts: {
+  to: string;
+  subject: string;
+  template: string;
+  resendId?: string | null;
+  error?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  await db.emailLog.create({
+    data: {
+      to: opts.to,
+      subject: opts.subject,
+      template: opts.template,
+      resendId: opts.resendId ?? null,
+      status: opts.error ? "FAILED" : "SENT",
+      errorMessage: opts.error ?? null,
+      metadata: opts.metadata as Prisma.InputJsonValue | undefined,
+    },
+  }).catch(() => {});
+}
 
 function getFrom(): string {
   const from = process.env["EMAIL_FROM"];
@@ -29,12 +52,9 @@ export async function sendRefundRequestedEmail(opts: {
     amount: formatEur(opts.amount),
     refundUrl: `${appUrl()}/profilo/rimborsi/${opts.refundId}`,
   });
-  await resend.emails.send({
-    from: getFrom(),
-    to: opts.customerEmail,
-    subject: "Richiesta di rimborso ricevuta",
-    html,
-  });
+  const subject = "Richiesta di rimborso ricevuta";
+  const { data, error } = await resend.emails.send({ from: getFrom(), to: opts.customerEmail, subject, html });
+  await logEmail({ to: opts.customerEmail, subject, template: "refund-requested", resendId: data?.id, error: error?.message, metadata: { refundId: opts.refundId } });
 }
 
 export async function sendRefundApprovedEmail(opts: {
@@ -51,12 +71,9 @@ export async function sendRefundApprovedEmail(opts: {
     amount: formatEur(opts.amount),
     refundUrl: `${appUrl()}/profilo/rimborsi/${opts.refundId}`,
   });
-  await resend.emails.send({
-    from: getFrom(),
-    to: opts.customerEmail,
-    subject: "Rimborso approvato",
-    html,
-  });
+  const subject = "Rimborso approvato";
+  const { data, error } = await resend.emails.send({ from: getFrom(), to: opts.customerEmail, subject, html });
+  await logEmail({ to: opts.customerEmail, subject, template: "refund-approved", resendId: data?.id, error: error?.message, metadata: { refundId: opts.refundId } });
 }
 
 export async function sendRefundRejectedEmail(opts: {
@@ -73,12 +90,9 @@ export async function sendRefundRejectedEmail(opts: {
     amount: formatEur(opts.amount),
     refundUrl: `${appUrl()}/profilo/rimborsi/${opts.refundId}`,
   });
-  await resend.emails.send({
-    from: getFrom(),
-    to: opts.customerEmail,
-    subject: "Rimborso non approvato",
-    html,
-  });
+  const subject = "Rimborso non approvato";
+  const { data, error } = await resend.emails.send({ from: getFrom(), to: opts.customerEmail, subject, html });
+  await logEmail({ to: opts.customerEmail, subject, template: "refund-rejected", resendId: data?.id, error: error?.message, metadata: { refundId: opts.refundId } });
 }
 
 export async function sendRefundNewForManagerEmail(opts: {
@@ -97,10 +111,7 @@ export async function sendRefundNewForManagerEmail(opts: {
     amount: formatEur(opts.amount),
     adminUrl: `${appUrl()}/admin/rimborsi/${opts.refundId}`,
   });
-  await resend.emails.send({
-    from: getFrom(),
-    to: opts.managerEmail,
-    subject: `Nuova richiesta rimborso – ${opts.venueName}`,
-    html,
-  });
+  const subject = `Nuova richiesta rimborso – ${opts.venueName}`;
+  const { data, error } = await resend.emails.send({ from: getFrom(), to: opts.managerEmail, subject, html });
+  await logEmail({ to: opts.managerEmail, subject, template: "refund-new-for-manager", resendId: data?.id, error: error?.message, metadata: { refundId: opts.refundId } });
 }
