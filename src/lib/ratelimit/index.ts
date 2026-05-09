@@ -30,6 +30,14 @@ export const adminLoginLimiter = redis
     })
   : null;
 
+export const ticketStatusLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 m"),
+      prefix: "rl:ticket-status",
+    })
+  : null;
+
 export const checkoutLimiter = redis
   ? new Ratelimit({
       redis,
