@@ -217,8 +217,9 @@ model Operator {
   updatedAt   DateTime     @updatedAt
   lastLoginAt DateTime?
 
-  venue   Venue    @relation(fields: [venueId], references: [id])
-  tickets Ticket[]
+  venue     Venue           @relation(fields: [venueId], references: [id])
+  tickets   Ticket[]
+  auditLogs AdminAuditLog[]
 
   @@index([venueId, active])
 }
@@ -243,20 +244,25 @@ model AdminUser {
   auditLogs AdminAuditLog[]
 }
 
-model AdminAuditLog {
-  id          String   @id @default(cuid())
-  adminUserId String
-  action      String   // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
-  targetType  String?  // "Ticket", "Order", "Operator", "Venue", "PriceTier"
-  targetId    String?
-  payload     Json?    // snapshot del contesto
-  ipAddress   String?
-  userAgent   String?  @db.Text
-  createdAt   DateTime @default(now())
 
-  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+model AdminAuditLog {
+  id          String    @id @default(cuid())
+  adminUserId String?
+  operatorId  String?
+  actorType   ActorType @default(ADMIN_USER)
+  action      String    // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
+  targetType  String?   // "Ticket", "Order", "Operator", "Venue", "PriceTier"
+  targetId    String?
+  payload     Json?     // snapshot del contesto
+  ipAddress   String?
+  userAgent   String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id])
+  operator  Operator?  @relation(fields: [operatorId], references: [id])
 
   @@index([adminUserId, createdAt])
+  @@index([operatorId, createdAt])
   @@index([targetType, targetId])
   @@index([action, createdAt])
 }
@@ -309,5 +315,11 @@ enum OperatorRole {
 enum ProcessedByType {
   OPERATOR
   ADMIN_USER
+  SYSTEM
+}
+
+enum ActorType {
+  ADMIN_USER
+  OPERATOR
   SYSTEM
 }

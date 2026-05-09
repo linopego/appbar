@@ -179,6 +179,22 @@ Stripe non può raggiungere il tuo localhost. Usa la Stripe CLI:
 > **Nota:** Le email manager sono demo (`manager-{slug}@example.com`). Prima del go-live,
 > imposta email reali nel DB per gli operatori con ruolo MANAGER.
 
+## Test del pannello admin
+
+1. Login come manager: `/staff/studios-deco`, PIN `1234` (Manager Demo)
+2. Nel POS, vedrai un link "Admin" in arancione nell'header — click
+3. Sei in `/admin`, vedi la dashboard del venue con KPI
+4. Esplora le sezioni:
+   - **Listino**: aggiungi una fascia di test, modificala (verifica avviso su prezzi), disattivala
+   - **Operatori**: crea un Barista di test, disattivalo; verifica che non puoi modificarti
+   - **Statistiche**: cambia il range temporale, verifica bar chart e pie chart
+   - **Impostazioni**: aggiungi una finestra di blocco rimborso, salva; verifica che poi blocca le richieste
+5. In **Ordini**: cerca per email, esporta CSV con i filtri correnti
+6. In un ordine con ticket ACTIVE: usa "Invalida ticket selezionati" con motivazione
+7. Verifica che tutte le azioni creano record in `AdminAuditLog` (`pnpm db:studio`)
+
+> Il manager di Studio A (`studios-deco`) non vede mai i dati di altri venue.
+
 ## Test
 
 ```bash

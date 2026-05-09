@@ -15,3 +15,21 @@ export const resend = new Proxy({} as Resend, {
     return getResend()[prop as keyof Resend];
   },
 });
+
+function getFrom(): string {
+  const from = process.env["EMAIL_FROM"];
+  if (!from) throw new Error("EMAIL_FROM non configurato");
+  return from;
+}
+
+export async function sendEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  await getResend().emails.send({ from: getFrom(), to, subject, html });
+}

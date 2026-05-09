@@ -64,7 +64,7 @@ function overlayBg(state: State): string {
 }
 
 // ── component ──────────────────────────────────────────────────────────────
-export function PosScanner({ venueName, operatorName, venueSlug }: Props) {
+export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }: Props) {
   const [state, setState] = useState<State>({ kind: "idle" });
   const [cameraError, setCameraError] = useState<string | null>(null);
   const lastScanAtRef = useRef<number>(0);
@@ -230,6 +230,14 @@ export function PosScanner({ venueName, operatorName, venueSlug }: Props) {
           >
             Stats
           </Link>
+          {operatorRole === "MANAGER" && (
+            <Link
+              href="/admin"
+              className="underline hover:text-zinc-200 text-amber-400"
+            >
+              Admin
+            </Link>
+          )}
           <form action="/api/staff/logout" method="POST">
             <button type="submit" className="underline hover:text-zinc-200">
               Esci
