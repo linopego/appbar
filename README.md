@@ -83,6 +83,38 @@ ADMIN_JWT_SECRET=
 3. Seleziona "Manager Demo" (PIN `1234`) o "Barista Demo" (PIN `5678`)
 4. Sessione 12h, redirect a `/staff/[slug]/pos`
 
+### Test del POS in locale
+
+1. Esegui il seed: `pnpm db:seed`
+2. Avvia: `pnpm dev`
+3. Apri `http://localhost:3000/staff/studios-deco` **dal computer dove gira il server**
+   (la camera richiede HTTPS o `localhost`)
+4. Seleziona "Barista Demo" (PIN `5678`), accedi
+5. Concedi i permessi camera quando richiesto dal browser
+6. Su un altro browser/tab: acquista ticket come cliente, poi apri `/ordine/[id]`
+7. Mostra uno dei QR alla webcam del computer
+8. L'overlay verde appare con il nome fascia e prezzo
+9. Clicca "✓ Consegnato"
+10. L'overlay mostra la conferma e torna automaticamente allo scan dopo 2 secondi
+11. Verifica in `pnpm prisma studio` che il ticket sia `CONSUMED`
+12. Riscaniona lo stesso QR → overlay grigio "Già consegnato alle HH:MM da Barista Demo"
+13. Le statistiche del giorno sono su `/staff/studios-deco/stats`
+
+> **File audio**: aggiungi `beep.mp3`, `success.mp3`, `warn.mp3`, `error.mp3`
+> in `public/sounds/` per abilitare il feedback audio. Senza file, il POS
+> funziona silenzioso senza errori.
+
+### Test da tablet sulla rete locale
+
+La camera richiede **HTTPS** (o `localhost`). Da un tablet sulla rete LAN
+(es. `http://192.168.1.10:3000`) non funziona senza HTTPS. Soluzioni:
+
+- **ngrok**: `ngrok http 3000` → URL HTTPS pubblico raggiungibile da tutti i device
+- **Cloudflare Tunnel**: `cloudflared tunnel --url http://localhost:3000`
+- **mkcert**: certificati self-signed locali per sviluppo
+
+In production (Vercel) HTTPS è incluso, il problema non si pone.
+
 ### Testare il login super-admin
 
 1. Email: `linopegoraro.dir@gmail.com`

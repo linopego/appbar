@@ -46,6 +46,22 @@ export const checkoutLimiter = redis
     })
   : null;
 
+export const posLookupLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(120, "1 m"),
+      prefix: "rl:pos-lookup",
+    })
+  : null;
+
+export const posConsumeLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 m"),
+      prefix: "rl:pos-consume",
+    })
+  : null;
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string
