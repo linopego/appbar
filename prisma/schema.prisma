@@ -35,8 +35,9 @@ model PriceTier {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  venue   Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  tickets Ticket[]
+  venue      Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tickets    Ticket[]
+  orderItems OrderItem[]
 
   @@unique([venueId, name])
   @@index([venueId, active])
@@ -123,14 +124,30 @@ model Order {
   updatedAt       DateTime    @updatedAt
   paidAt          DateTime?
 
-  customer Customer @relation(fields: [customerId], references: [id])
-  venue    Venue    @relation(fields: [venueId], references: [id])
+  customer Customer    @relation(fields: [customerId], references: [id])
+  venue    Venue       @relation(fields: [venueId], references: [id])
   tickets  Ticket[]
   refunds  Refund[]
+  items    OrderItem[]
 
   @@index([customerId, createdAt])
   @@index([venueId, createdAt])
   @@index([status])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  priceTierId String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  tierName    String
+  createdAt   DateTime @default(now())
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  priceTier PriceTier @relation(fields: [priceTierId], references: [id])
+
+  @@index([orderId])
 }
 
 model Ticket {

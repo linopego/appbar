@@ -84,15 +84,33 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env["NEXT_PUBLIC_APP_URL"] ?? process.env["NEXTAUTH_URL"] ?? "http://localhost:3000";
 
-  // Create order in DB as PENDING
-  const order = await db.order.create({
-    data: {
-      customerId: session.user.id,
-      venueId: venue.id,
-      totalAmount: total,
-      status: "PENDING",
-      stripeSessionId: "pending", // placeholder — replaced after Stripe session creation
-    },
+  // Create order + items in DB as PENDING (atomic)
+  const placeholderSessionId = `pending-${crypto.randomUUID()}`;
+  const order = await db.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        customerId: session.user!.id,
+        venueId: venue.id,
+        totalAmount: total,
+        status: "PENDING",
+        stripeSessionId: placeholderSessionId,
+      },
+    });
+
+    await tx.orderItem.createMany({
+      data: items.map((item) => {
+        const tier = tierMap.get(item.priceTierId)!;
+        return {
+          orderId: created.id,
+          priceTierId: tier.id,
+          quantity: item.quantity,
+          unitPrice: tier.price,
+          tierName: tier.name,
+        };
+      }),
+    });
+
+    return created;
   });
 
   // Build Stripe line items

@@ -102,6 +102,29 @@ ADMIN_JWT_SECRET=
 
 I cookie sono `httpOnly`, `sameSite: lax`, `secure` in produzione.
 
+## Test webhook in dev
+
+Stripe non può raggiungere il tuo localhost. Usa la Stripe CLI:
+
+1. Installa Stripe CLI: `brew install stripe/stripe-cli/stripe` (macOS) o vedi
+   [stripe.com/docs/stripe-cli](https://stripe.com/docs/stripe-cli)
+2. Login: `stripe login`
+3. Inoltra eventi al webhook locale:
+   ```bash
+   stripe listen --forward-to localhost:3000/api/webhooks/stripe
+   ```
+4. La CLI stampa un `whsec_…`: copialo in `.env.local` come `STRIPE_WEBHOOK_SECRET`
+5. Riavvia `pnpm dev` per ricaricare le env
+6. Fai un acquisto test con carta `4242 4242 4242 4242`
+7. Vedrai negli stdout di `stripe listen` l'evento `checkout.session.completed` inoltrato
+8. Nei log di Next.js vedrai il processamento + creazione ticket
+9. Apri Prisma Studio (`pnpm prisma studio`): l'`Order` è ora `PAID` e ci sono N
+   `Ticket` `ACTIVE`
+10. La pagina `/checkout/success` ferma il polling e mostra il bottone verso il
+    profilo (la pagina `/ordine/[id]` arriverà nel Prompt 7 — per ora 404, atteso)
+11. L'email di conferma arriva all'indirizzo del cliente (controlla anche spam,
+    e nei log della dashboard Resend)
+
 ## Test
 
 ```bash
