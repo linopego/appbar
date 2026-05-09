@@ -12,12 +12,14 @@ datasource db {
 // =====================================================
 
 model Venue {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  active                Boolean  @default(true)
+  refundBlockedWindows  Json?    // [{ day: 0-6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }]
+  refundBlockedTimezone String   @default("Europe/Rome")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   priceTiers PriceTier[]
   operators  Operator[]
@@ -207,6 +209,7 @@ model Operator {
   id          String       @id @default(cuid())
   venueId     String
   name        String
+  email       String?
   pinHash     String       // bcrypt
   role        OperatorRole
   active      Boolean      @default(true)

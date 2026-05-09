@@ -157,6 +157,28 @@ Stripe non può raggiungere il tuo localhost. Usa la Stripe CLI:
 11. L'email di conferma arriva all'indirizzo del cliente (controlla anche spam,
     e nei log della dashboard Resend)
 
+## Test del flusso rimborso
+
+1. Da cliente: fai un acquisto di 2-3 ticket (carta test `4242 4242 4242 4242`)
+2. Aspetta che il webhook completi (verifica Order PAID in `pnpm prisma studio`)
+3. Vai su `/profilo` → click sull'ordine → "Richiedi un rimborso"
+4. Se sei in fascia bloccata (es. sabato sera tardi), vedrai messaggio con orario riapertura
+5. Altrimenti: seleziona i ticket, scrivi motivazione (min. 10 caratteri), invia
+6. Verifica email "Richiesta ricevuta" (dashboard Resend) + email al manager di test `manager-{slug}@example.com`
+7. Da manager: login a `/staff/[venueSlug]` con PIN `1234` (Manager Demo)
+8. Vai su `/admin/rimborsi`
+9. Click sulla richiesta pending → pagina dettaglio
+10. (Facoltativo) Scrivi una nota, poi click "Approva e rimborsa" → conferma
+11. Verifica:
+    - In DB: `Refund.status = COMPLETED` (o APPROVED), ticket `REFUNDED`, order `PARTIALLY_REFUNDED` o `REFUNDED`
+    - Stripe Dashboard test mode: refund visibile
+    - Email "Rimborso approvato" arriva al cliente
+12. Test rifiuto: fai un'altra richiesta, da manager scrivi motivazione e click "Rifiuta"
+13. Verifica: ticket restano `ACTIVE`, email rifiuto al cliente con motivazione
+
+> **Nota:** Le email manager sono demo (`manager-{slug}@example.com`). Prima del go-live,
+> imposta email reali nel DB per gli operatori con ruolo MANAGER.
+
 ## Test
 
 ```bash

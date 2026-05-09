@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TicketCard } from "@/components/shared/ticket-card";
 import { OrderStatusBanner } from "@/components/shared/order-status-banner";
+import { RefundStatusBadge } from "@/components/shared/refund-status-badge";
 import { computeTicketStatus } from "@/lib/tickets/status";
 import { formatEur } from "@/lib/utils/money";
 import { PollingOrderStatus } from "./polling-order-status";
@@ -47,6 +48,7 @@ export default async function OrderPage({ params }: PageProps) {
         include: { priceTier: true },
         orderBy: [{ priceTier: { sortOrder: "asc" } }, { createdAt: "asc" }],
       },
+      refunds: { orderBy: { requestedAt: "desc" }, take: 1 },
     },
   });
 
@@ -120,6 +122,7 @@ export default async function OrderPage({ params }: PageProps) {
 
   const expiresAt = order.tickets[0]?.expiresAt ?? null;
   const hasUsableTickets = order.tickets.some((t) => computeTicketStatus(t) === "ACTIVE");
+  const latestRefund = order.refunds[0] ?? null;
 
   return (
     <main className="min-h-screen bg-background">
@@ -162,7 +165,28 @@ export default async function OrderPage({ params }: PageProps) {
           ))}
         </div>
 
-        {hasUsableTickets && (
+        {/* Refund banner */}
+        {latestRefund && (
+          <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50 p-4 flex items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-zinc-800">Hai una richiesta di rimborso in corso</p>
+              <p className="text-xs text-zinc-500">
+                {(latestRefund.ticketIds as string[]).length} ticket · {formatEur(latestRefund.amount.toString())}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <RefundStatusBadge status={latestRefund.status} />
+              <Link
+                href={`/profilo/rimborsi/${latestRefund.id}`}
+                className="text-xs text-zinc-600 hover:text-zinc-900 underline"
+              >
+                Vedi →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {hasUsableTickets && !latestRefund && (
           <div className="mt-12 pt-6 border-t">
             <p className="text-sm text-muted-foreground">
               Hai bisogno di un rimborso?{" "}

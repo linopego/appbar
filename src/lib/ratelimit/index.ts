@@ -62,6 +62,14 @@ export const posConsumeLimiter = redis
     })
   : null;
 
+export const refundRequestLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "1 h"),
+      prefix: "rl:refund-request",
+    })
+  : null;
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string
