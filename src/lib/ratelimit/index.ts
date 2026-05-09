@@ -30,6 +30,14 @@ export const adminLoginLimiter = redis
     })
   : null;
 
+export const checkoutLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "5 m"),
+      prefix: "rl:checkout",
+    })
+  : null;
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string

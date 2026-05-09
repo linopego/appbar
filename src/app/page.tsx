@@ -1,24 +1,17 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { db } from "@/lib/db";
 
-const venues = [
-  {
-    id: 1,
-    nome: "La Casa dei Gelsi",
-    descrizione: "Locale storico con ampi spazi interni ed esterni.",
-  },
-  {
-    id: 2,
-    nome: "Studios Club – DECÒ",
-    descrizione: "Club esclusivo per eventi privati e serate a tema.",
-  },
-  {
-    id: 3,
-    nome: "Tenuta Villa Peggy's",
-    descrizione: "Splendida tenuta immersa nella natura per feste ed eventi.",
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const venues = await db.venue.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, slug: true },
+  });
+
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
@@ -29,13 +22,16 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {venues.map((venue) => (
-            <Card key={venue.id} className="hover:shadow-md transition-shadow">
+            <Card key={venue.id} className="hover:shadow-md transition-shadow flex flex-col">
               <CardHeader>
-                <CardTitle className="text-lg">{venue.nome}</CardTitle>
+                <CardTitle className="text-lg">{venue.name}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{venue.descrizione}</p>
-              </CardContent>
+              <CardContent className="flex-1" />
+              <CardFooter>
+                <Button asChild className="w-full">
+                  <Link href={`/${venue.slug}`}>Acquista ticket</Link>
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>
