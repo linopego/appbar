@@ -14,6 +14,19 @@ const PROTECTED_CUSTOMER_ROUTES = ["/profilo", "/ordine"];
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // === Rotte admin manager (/admin/*) ===
+  if (pathname.startsWith("/admin")) {
+    const token = req.cookies.get(STAFF_COOKIE_NAME)?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    const payload = await verifyStaffToken(token);
+    if (!payload || payload.role !== "MANAGER") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
+
   // === Rotte super-admin ===
   if (pathname.startsWith("/superadmin")) {
     if (pathname === "/superadmin/login") return NextResponse.next();
@@ -70,6 +83,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/admin/:path*",
     "/staff/:path*",
     "/superadmin/:path*",
     "/profilo/:path*",

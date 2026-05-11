@@ -1,0 +1,34 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+export function OperatorToggleButton({ operatorId, active, name }: { operatorId: string; active: boolean; name: string }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    const action = active ? "disattivare" : "riattivare";
+    if (!confirm(`Vuoi ${action} l'operatore "${name}"?`)) return;
+    setLoading(true);
+    try {
+      await fetch(`/api/admin/operators/${operatorId}/toggle-active`, { method: "POST" });
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className={`text-xs px-3 py-1 rounded-lg border transition-colors disabled:opacity-50 ${active
+        ? "border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50"
+        : "border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50"
+      }`}
+    >
+      {loading ? "…" : active ? "Disattiva" : "Riattiva"}
+    </button>
+  );
+}
