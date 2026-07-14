@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { isPubliclyVisible, publicVenuesWhere } from "@/lib/venues/public";
 
-// La homepage mostra solo venue attivi di organizzazioni attive.
+// La select di /accesso-staff mostra solo venue attivi di organizzazioni
+// attive. (La homepage non elenca più i locali: è la vetrina prodotto.)
 
 describe("isPubliclyVisible", () => {
   it("venue attivo di org attiva → visibile", () => {
@@ -21,7 +22,7 @@ describe("isPubliclyVisible", () => {
   });
 });
 
-describe("publicVenuesWhere (filtro Prisma della homepage)", () => {
+describe("publicVenuesWhere (filtro Prisma di /accesso-staff)", () => {
   it("filtra su venue attivo E organizzazione attiva", () => {
     expect(publicVenuesWhere).toEqual({
       active: true,
