@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function toSlug(name: string): string {
@@ -11,8 +11,11 @@ function toSlug(name: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-export default function NuovoVenuePage() {
+function NuovoVenueForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Precompilato quando si arriva da /superadmin/organizations/[id]
+  const organizationId = searchParams.get("organizationId");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugManual, setSlugManual] = useState(false);
@@ -53,7 +56,12 @@ export default function NuovoVenuePage() {
       const res = await fetch("/api/superadmin/venues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), slug, withDefaults }),
+        body: JSON.stringify({
+          name: name.trim(),
+          slug,
+          withDefaults,
+          ...(organizationId ? { organizationId } : {}),
+        }),
       });
       const json = (await res.json()) as {
         ok: boolean;
@@ -73,7 +81,9 @@ export default function NuovoVenuePage() {
         return;
       }
 
-      router.push("/superadmin/venues");
+      router.push(
+        organizationId ? `/superadmin/organizations/${organizationId}` : "/superadmin/venues"
+      );
       router.refresh();
     } catch {
       setError("Errore di rete. Riprova.");
@@ -174,5 +184,13 @@ export default function NuovoVenuePage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function NuovoVenuePage() {
+  return (
+    <Suspense>
+      <NuovoVenueForm />
+    </Suspense>
   );
 }

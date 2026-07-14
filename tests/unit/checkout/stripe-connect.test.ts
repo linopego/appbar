@@ -52,23 +52,29 @@ describe("feeCentsToEur", () => {
 describe("isPaymentsConfigured (gate PAYMENTS_NOT_CONFIGURED)", () => {
   it("org senza stripeAccountId → checkout rifiutato", () => {
     expect(
-      isPaymentsConfigured({ stripeAccountId: null, stripeChargesEnabled: false })
+      isPaymentsConfigured({ stripeAccountId: null, stripeChargesEnabled: false, active: true })
     ).toBe(false);
     expect(
-      isPaymentsConfigured({ stripeAccountId: null, stripeChargesEnabled: true })
+      isPaymentsConfigured({ stripeAccountId: null, stripeChargesEnabled: true, active: true })
     ).toBe(false);
   });
 
   it("org con account ma charges non abilitati → checkout rifiutato", () => {
     expect(
-      isPaymentsConfigured({ stripeAccountId: "acct_1", stripeChargesEnabled: false })
+      isPaymentsConfigured({ stripeAccountId: "acct_1", stripeChargesEnabled: false, active: true })
     ).toBe(false);
   });
 
   it("account presente + charges abilitati → checkout consentito", () => {
     expect(
-      isPaymentsConfigured({ stripeAccountId: "acct_1", stripeChargesEnabled: true })
+      isPaymentsConfigured({ stripeAccountId: "acct_1", stripeChargesEnabled: true, active: true })
     ).toBe(true);
+  });
+
+  it("organizzazione disattivata → checkout rifiutato anche con Stripe configurato", () => {
+    expect(
+      isPaymentsConfigured({ stripeAccountId: "acct_1", stripeChargesEnabled: true, active: false })
+    ).toBe(false);
   });
 });
 

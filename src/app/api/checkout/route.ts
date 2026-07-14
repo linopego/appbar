@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
           stripeAccountId: true,
           stripeChargesEnabled: true,
           feePercent: true,
+          active: true,
         },
       },
     },
