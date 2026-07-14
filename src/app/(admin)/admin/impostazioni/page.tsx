@@ -72,6 +72,26 @@ export default async function ImpostazioniPage() {
         </div>
       </div>
 
+      {/* QR stampabile del locale */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-900">QR del locale</h2>
+          <p className="text-sm text-zinc-500 mt-1">
+            Scarica il QR in alta risoluzione da stampare ed esporre al banco: i clienti lo
+            inquadrano e arrivano direttamente alla pagina d&apos;acquisto. Contiene solo il
+            link pubblico del locale.
+          </p>
+        </div>
+        {/* Download di file da API route: serve <a> nativo, non <Link> */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
+          href="/api/admin/venue/qr-poster"
+          className="inline-block px-4 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-700 text-sm font-medium transition-colors"
+        >
+          Scarica QR del locale (PNG)
+        </a>
+      </div>
+
       {/* Editable: refund windows + timezone */}
       <div className="space-y-3">
         <div>
