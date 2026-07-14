@@ -8,10 +8,15 @@ const ADMIN_PENDING_DURATION_SECONDS = 5 * 60; // 5 min
 
 export type AdminPendingStep = "TOTP_REQUIRED" | "TOTP_SETUP_REQUIRED";
 
+export type AdminSessionRole = "PLATFORM" | "ORG_ADMIN";
+
 export interface AdminSessionPayload {
   adminUserId: string;
   email: string;
   name: string;
+  role: AdminSessionRole;
+  // null per admin PLATFORM; obbligatorio per ORG_ADMIN (regola applicativa)
+  organizationId: string | null;
 }
 
 export interface AdminPendingPayload {
@@ -54,6 +59,10 @@ export async function getAdminSession(): Promise<AdminSessionPayload | null> {
       adminUserId: payload["adminUserId"] as string,
       email: payload["email"] as string,
       name: payload["name"] as string,
+      // Token emessi prima dell'introduzione dei ruoli (vita max 1h): gli unici
+      // admin esistenti allora erano di piattaforma.
+      role: (payload["role"] as AdminSessionRole | undefined) ?? "PLATFORM",
+      organizationId: (payload["organizationId"] as string | null | undefined) ?? null,
     };
   } catch {
     return null;

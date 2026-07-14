@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { SuperAdminOperatorEditForm } from "./operator-edit-form";
 
@@ -16,8 +17,8 @@ export default async function SuperAdminOperatoreModificaPage({
 
   const { id } = await params;
 
-  const operator = await db.operator.findUnique({
-    where: { id },
+  const operator = await db.operator.findFirst({
+    where: { id, ...orgScopeWhere(session).byVenue },
     include: { venue: { select: { name: true } } },
   });
 

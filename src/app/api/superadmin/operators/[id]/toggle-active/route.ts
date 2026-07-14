@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 
@@ -12,7 +13,10 @@ export async function POST(
 
   const { id } = await params;
 
-  const operator = await db.operator.findUnique({ where: { id } });
+  const operator = await db.operator.findFirst({
+    where: { id, ...orgScopeWhere(session).byVenue },
+    include: { venue: { select: { organizationId: true } } },
+  });
   if (!operator) {
     return NextResponse.json({ ok: false, error: "Operatore non trovato" }, { status: 404 });
   }
@@ -22,6 +26,7 @@ export async function POST(
 
   await logAdminAction({
     adminUserId: session.adminUserId,
+    organizationId: operator.venue.organizationId,
     action: newActive ? "OPERATOR_REACTIVATED" : "OPERATOR_DEACTIVATED",
     targetType: "Operator",
     targetId: id,

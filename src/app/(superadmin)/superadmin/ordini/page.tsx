@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import type { Prisma } from "@prisma/client";
@@ -61,6 +62,7 @@ export default async function SuperAdminOrdiniPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10));
 
   const where: Prisma.OrderWhereInput = {
+    ...orgScopeWhere(session).byVenue,
     ...(status ? { status: status as never } : {}),
     ...(venueId ? { venueId } : {}),
     ...(from || to
@@ -84,7 +86,7 @@ export default async function SuperAdminOrdiniPage({
       take: PAGE_SIZE,
     }),
     db.order.count({ where }),
-    db.venue.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.venue.findMany({ where: orgScopeWhere(session).venue, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

@@ -20,6 +20,8 @@ function formatDT(d: Date) {
 export default async function SuperAdminSistemaPage() {
   const session = await requireAdmin().catch(() => null);
   if (!session) redirect("/superadmin/login");
+  // Metriche globali di piattaforma: riservate agli admin PLATFORM
+  if (session.role !== "PLATFORM") redirect("/superadmin");
 
   // Server component force-dynamic: leggere l'ora corrente a ogni request è voluto.
   // eslint-disable-next-line react-hooks/purity

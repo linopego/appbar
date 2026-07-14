@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { AuditLogRow } from "./audit-log-row";
 import type { Prisma } from "@prisma/client";
@@ -55,6 +56,7 @@ export default async function SuperAdminAuditPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10));
 
   const where: Prisma.AdminAuditLogWhereInput = {
+    ...orgScopeWhere(session).audit,
     ...(actorTypeParam && actorTypeParam !== "all"
       ? { actorType: actorTypeParam as never }
       : {}),

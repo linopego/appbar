@@ -8,11 +8,31 @@ datasource db {
 }
 
 // =====================================================
+// ORGANIZATION (tenant della piattaforma)
+// =====================================================
+
+model Organization {
+  id              String   @id @default(cuid())
+  name            String
+  // Account Stripe Connect collegato (null finché l'onboarding non è completato — Prompt R3)
+  stripeAccountId String?  @unique
+  // Percentuale trattenuta dalla piattaforma sulle vendite (es. 5.00 = 5%)
+  feePercent      Decimal  @default(0) @db.Decimal(5, 2)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  venues     Venue[]
+  adminUsers AdminUser[]
+}
+
+// =====================================================
 // VENUE & LISTINO
 // =====================================================
 
 model Venue {
   id                    String   @id @default(cuid())
+  organizationId        String
   name                  String
   slug                  String   @unique
   active                Boolean  @default(true)
@@ -21,10 +41,13 @@ model Venue {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  priceTiers PriceTier[]
-  operators  Operator[]
-  orders     Order[]
-  tickets    Ticket[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+  priceTiers   PriceTier[]
+  operators    Operator[]
+  orders       Order[]
+  tickets      Ticket[]
+
+  @@index([organizationId])
 }
 
 model PriceTier {
@@ -229,11 +252,21 @@ model Operator {
 // SUPER-ADMIN (cross-venue)
 // =====================================================
 
+// Regola di integrità (applicativa, validata con Zod alla creazione/modifica):
+// role PLATFORM  ⇒ organizationId null
+// role ORG_ADMIN ⇒ organizationId obbligatorio
+enum AdminRole {
+  PLATFORM // admin della piattaforma: vede e gestisce tutte le organizzazioni
+  ORG_ADMIN // admin di una singola organizzazione
+}
+
 model AdminUser {
   id                 String    @id @default(cuid())
   email              String    @unique
   passwordHash       String
   name               String
+  role               AdminRole @default(ORG_ADMIN)
+  organizationId     String?
   totpSecret         String?
   totpEnabled        Boolean   @default(false)
   mustChangePassword Boolean   @default(false)
@@ -242,14 +275,20 @@ model AdminUser {
   updatedAt          DateTime  @updatedAt
   lastLoginAt        DateTime?
 
-  auditLogs AdminAuditLog[]
+  organization Organization?   @relation(fields: [organizationId], references: [id])
+  auditLogs    AdminAuditLog[]
+
+  @@index([organizationId])
 }
 
 model AdminAuditLog {
-  id          String    @id @default(cuid())
-  adminUserId String?
-  operatorId  String?
-  actorType   ActorType @default(ADMIN_USER)
+  id             String    @id @default(cuid())
+  adminUserId    String?
+  operatorId     String?
+  // Denormalizzato: organizzazione dell'azione quando determinabile (dal venue
+  // dell'operatore o dall'admin ORG_ADMIN); null per azioni PLATFORM senza org.
+  organizationId String?
+  actorType      ActorType @default(ADMIN_USER)
   action      String // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
   targetType  String? // "Ticket", "Order", "Operator", "Venue", "PriceTier"
   targetId    String?
@@ -263,6 +302,7 @@ model AdminAuditLog {
 
   @@index([adminUserId, createdAt])
   @@index([operatorId, createdAt])
+  @@index([organizationId, createdAt])
   @@index([targetType, targetId])
   @@index([action, createdAt])
 }

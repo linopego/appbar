@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
@@ -19,7 +20,8 @@ export async function GET(req: NextRequest) {
   const activeParam = url.searchParams.get("active");
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
 
-  const where: Prisma.OperatorWhereInput = {};
+  // ORG_ADMIN: solo operatori dei venue della propria organizzazione
+  const where: Prisma.OperatorWhereInput = { ...orgScopeWhere(session).byVenue };
 
   if (venueId) where.venueId = venueId;
   if (role && VALID_ROLES.includes(role as ValidRole)) {
@@ -79,7 +81,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "email non valida" }, { status: 400 });
   }
 
-  const venue = await db.venue.findUnique({ where: { id: venueId } });
+  const venue = await db.venue.findFirst({ where: { id: venueId, ...orgScopeWhere(session).venue } });
   if (!venue) {
     return NextResponse.json({ ok: false, error: "Venue non trovata" }, { status: 404 });
   }
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
 
     await logAdminAction({
       adminUserId: session.adminUserId,
+      organizationId: venue.organizationId,
       action: "OPERATOR_CREATED",
       targetType: "Operator",
       targetId: op.id,

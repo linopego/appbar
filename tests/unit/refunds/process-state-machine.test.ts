@@ -47,7 +47,7 @@ function mockHappyPath() {
     id: "ref-1",
     amount: "16.00",
     ticketIds: ["t1", "t2"],
-    order: { id: "o1", stripePaymentId: "pi_123" },
+    order: { id: "o1", stripePaymentId: "pi_123", venue: { organizationId: "org-1" } },
   });
   tx.$queryRaw.mockResolvedValue([
     { id: "t1", status: "ACTIVE", expiresAt: FUTURE },
@@ -166,7 +166,7 @@ describe("Stripe (fase 2)", () => {
       id: "ref-1",
       amount: "16.00",
       ticketIds: ["t1", "t2"],
-      order: { id: "o1", stripePaymentId: null },
+      order: { id: "o1", stripePaymentId: null, venue: { organizationId: "org-1" } },
     });
 
     const result = await processRefund({ refundId: "ref-1", actor: ACTOR });
@@ -198,6 +198,7 @@ describe("finalizzazione (fase 3)", () => {
 
     // audit SEMPRE, anche per i manager (actorType OPERATOR)
     const audit = tx.adminAuditLog.create.mock.calls[0][0];
+    expect(audit.data.organizationId).toBe("org-1");
     expect(audit.data.actorType).toBe("OPERATOR");
     expect(audit.data.operatorId).toBe("op-1");
     expect(audit.data.adminUserId).toBeUndefined();

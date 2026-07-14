@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
@@ -17,7 +18,8 @@ export async function GET(req: NextRequest) {
   const emailParam = url.searchParams.get("email");
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
 
-  const where: Prisma.OrderWhereInput = {};
+  // ORG_ADMIN: solo ordini dei venue della propria organizzazione
+  const where: Prisma.OrderWhereInput = { ...orgScopeWhere(session).byVenue };
 
   if (statusParam) {
     where.status = statusParam as Prisma.EnumOrderStatusFilter;

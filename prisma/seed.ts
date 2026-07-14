@@ -46,6 +46,15 @@ const PRICE_TIERS = [
 const SUPER_ADMIN_EMAIL = "linopegoraro.dir@gmail.com";
 const SUPER_ADMIN_NAME = "Lino Pegoraro";
 
+// Prima organizzazione della piattaforma (stesso id fisso usato dalla
+// migration organization_layer: l'upsert è idempotente su entrambe le strade)
+const ORGANIZATION_ID = "org_pegoraro";
+const ORGANIZATION_NAME = "Gruppo Pegoraro";
+
+// Admin di organizzazione di test (ORG_ADMIN: vede solo la propria org)
+const ORG_ADMIN_EMAIL = "orgadmin-demo@example.com";
+const ORG_ADMIN_NAME = "Org Admin Demo";
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 function generatePassword(length = 16): string {
@@ -70,6 +79,18 @@ async function main() {
     bcrypt.hash("5678", 10),
   ]);
 
+  // ── Organization ──────────────────────────────────────────────────────────
+  const organization = await db.organization.upsert({
+    where: { id: ORGANIZATION_ID },
+    update: { name: ORGANIZATION_NAME, active: true },
+    create: {
+      id: ORGANIZATION_ID,
+      name: ORGANIZATION_NAME,
+      feePercent: 0,
+      active: true,
+    },
+  });
+
   // ── Venue + PriceTier + Operatori ─────────────────────────────────────────
   for (const venueData of VENUES) {
     const windows = VENUE_REFUND_WINDOWS[venueData.slug] ?? null;
@@ -79,6 +100,7 @@ async function main() {
       where: { slug: venueData.slug },
       update: {
         name: venueData.name,
+        organizationId: organization.id,
         active: true,
         refundBlockedWindows: windows ?? undefined,
         refundBlockedTimezone: "Europe/Rome",
@@ -86,6 +108,7 @@ async function main() {
       create: {
         name: venueData.name,
         slug: venueData.slug,
+        organizationId: organization.id,
         active: true,
         refundBlockedWindows: windows ?? undefined,
         refundBlockedTimezone: "Europe/Rome",
@@ -162,8 +185,15 @@ async function main() {
   });
 
   if (existingAdmin) {
+    // Garantisce che il super-admin storico resti admin di piattaforma
+    if (existingAdmin.role !== "PLATFORM" || existingAdmin.organizationId !== null) {
+      await db.adminUser.update({
+        where: { id: existingAdmin.id },
+        data: { role: "PLATFORM", organizationId: null },
+      });
+    }
     console.log(
-      `\nℹ️  Super-admin già presente: ${SUPER_ADMIN_EMAIL} (password invariata)`
+      `\nℹ️  Super-admin già presente: ${SUPER_ADMIN_EMAIL} (password invariata, role PLATFORM)`
     );
   } else {
     const tempPassword = generatePassword(16);
@@ -174,6 +204,8 @@ async function main() {
         email: SUPER_ADMIN_EMAIL,
         name: SUPER_ADMIN_NAME,
         passwordHash,
+        role: "PLATFORM",
+        organizationId: null,
         totpEnabled: false,
         mustChangePassword: true,
         active: true,
@@ -188,6 +220,43 @@ async function main() {
   - ${operatorCount} operatori (${operatorCount / venueCount} per venue)
   - 1 super-admin: ${SUPER_ADMIN_EMAIL}
 🔐 Password super-admin temporanea: ${tempPassword}
+   Cambiala al primo login.`);
+  }
+
+  // ── Admin di organizzazione (ORG_ADMIN di test) ───────────────────────────
+  const existingOrgAdmin = await db.adminUser.findUnique({
+    where: { email: ORG_ADMIN_EMAIL },
+  });
+
+  if (existingOrgAdmin) {
+    if (
+      existingOrgAdmin.role !== "ORG_ADMIN" ||
+      existingOrgAdmin.organizationId !== organization.id
+    ) {
+      await db.adminUser.update({
+        where: { id: existingOrgAdmin.id },
+        data: { role: "ORG_ADMIN", organizationId: organization.id },
+      });
+    }
+    console.log(`ℹ️  Org-admin di test già presente: ${ORG_ADMIN_EMAIL} (password invariata)`);
+  } else {
+    const orgAdminPassword = generatePassword(16);
+    const orgAdminHash = await bcrypt.hash(orgAdminPassword, 10);
+    await db.adminUser.create({
+      data: {
+        email: ORG_ADMIN_EMAIL,
+        name: ORG_ADMIN_NAME,
+        passwordHash: orgAdminHash,
+        role: "ORG_ADMIN",
+        organizationId: organization.id,
+        totpEnabled: false,
+        mustChangePassword: true,
+        active: true,
+      },
+    });
+    console.log(`
+👤 Org-admin di test creato: ${ORG_ADMIN_EMAIL} (org: ${ORGANIZATION_NAME})
+🔐 Password temporanea: ${orgAdminPassword}
    Cambiala al primo login.`);
   }
 
