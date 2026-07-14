@@ -22,25 +22,24 @@ export const authConfig = {
           throw new Error("RESEND_API_KEY o EMAIL_FROM mancanti nelle variabili d'ambiente");
         }
         const resend = new ResendClient(apiKey);
+        const { EMAIL_COLORS, emailCta, emailLayout } = await import("@/lib/email/brand");
+        const { BRAND_NAME } = await import("@/lib/brand");
         const { error } = await resend.emails.send({
           from,
           to: email,
-          subject: "Accedi al sistema ticket",
-          html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 40px auto; padding: 32px; background: #fafafa; border-radius: 12px;">
-              <h2 style="margin: 0 0 16px;">Accedi al tuo account</h2>
-              <p style="color: #555; line-height: 1.5;">
-                Clicca il pulsante qui sotto per accedere. Il link è valido per 24 ore.
+          subject: `Accedi a ${BRAND_NAME}`,
+          html: emailLayout({
+            title: `Accedi a ${BRAND_NAME}`,
+            bodyHtml: `
+              <h1 style="margin: 0 0 8px; font-size: 24px; color: ${EMAIL_COLORS.ink};">Accedi al tuo account</h1>
+              <p style="margin: 0 0 24px; color: ${EMAIL_COLORS.inkSoft}; line-height: 1.5;">
+                Tocca il pulsante qui sotto per entrare. Il link è valido per 24 ore.
               </p>
-              <a href="${url}"
-                 style="display: inline-block; margin: 24px 0; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 8px;">
-                Accedi
-              </a>
-              <p style="color: #999; font-size: 13px;">
+              ${emailCta(url, "Accedi")}
+              <p style="margin: 0; color: ${EMAIL_COLORS.inkMuted}; font-size: 13px; text-align: center;">
                 Se non hai richiesto questo accesso, ignora questa email.
-              </p>
-            </div>
-          `,
+              </p>`,
+          }),
           text: `Accedi al tuo account: ${url}\n\nIl link è valido per 24 ore.`,
         });
         if (error) {

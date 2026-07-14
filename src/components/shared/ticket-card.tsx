@@ -4,6 +4,7 @@ import { renderQrSvg } from "@/lib/qr/render";
 import { computeTicketStatus } from "@/lib/tickets/status";
 import { formatEur } from "@/lib/utils/money";
 import { TicketStatusBadge } from "./ticket-status-badge";
+import { KlinkLogo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -18,7 +19,7 @@ export async function TicketCard({ ticket, mode }: Props) {
 
   if (mode === "fullscreen") {
     return (
-      <div className="flex flex-col items-center gap-6">
+      <div className="relative flex flex-col items-center gap-6">
         <div
           className={cn(
             "relative bg-white p-4 rounded-2xl shadow-lg",
@@ -27,9 +28,14 @@ export async function TicketCard({ ticket, mode }: Props) {
           style={{ width: "min(70vw, 400px)", height: "min(70vw, 400px)" }}
           dangerouslySetInnerHTML={{ __html: svg.replace("<svg ", '<svg width="100%" height="100%" ') }}
         />
+        <span aria-hidden className="absolute bottom-3 right-3 opacity-25">
+          <KlinkLogo variant="mark" size={22} />
+        </span>
         <div className="text-center">
-          <div className="text-3xl font-bold uppercase tracking-tight">{ticket.priceTier.name}</div>
-          <div className="text-2xl text-muted-foreground mt-1">
+          <div className="font-display text-3xl font-semibold tracking-tight">
+            {ticket.priceTier.name}
+          </div>
+          <div className="text-2xl text-muted-foreground mt-1 tabular-nums">
             {formatEur(ticket.priceTier.price)}
           </div>
         </div>

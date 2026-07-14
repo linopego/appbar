@@ -42,7 +42,7 @@ export default async function RimborsoDettaglioPage({
   });
 
   return (
-    <main className="min-h-dvh bg-zinc-50">
+    <main className="min-h-dvh bg-background">
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div className="space-y-1">
           <Link href="/profilo/rimborsi" className="text-sm text-zinc-500 hover:text-zinc-800">

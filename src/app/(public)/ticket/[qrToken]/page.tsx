@@ -6,7 +6,7 @@ import { computeTicketStatus } from "@/lib/tickets/status";
 import { TicketLiveStatus } from "./ticket-live-status";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Il tuo ticket — Sistema Ticket" };
+export const metadata = { title: "Il tuo ticket" };
 
 interface PageProps {
   params: Promise<{ qrToken: string }>;

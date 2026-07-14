@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { PosScanner } from "./pos-scanner";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "POS — Sistema Ticket" };
+export const metadata = { title: "POS" };
 
 interface PageProps {
   params: Promise<{ venueSlug: string }>;

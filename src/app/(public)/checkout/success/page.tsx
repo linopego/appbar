@@ -4,7 +4,7 @@ import { PollingTicketReady } from "./polling-ticket-ready";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-export const metadata = { title: "Pagamento completato — Sistema Ticket" };
+export const metadata = { title: "Pagamento completato" };
 
 interface SuccessPageProps {
   searchParams: Promise<{ order_id?: string }>;

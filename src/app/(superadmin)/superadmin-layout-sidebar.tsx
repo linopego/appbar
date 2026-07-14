@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { KlinkLogo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -23,6 +24,9 @@ export function SuperAdminSidebar({ isPlatform = false }: { isPlatform?: boolean
 
   return (
     <aside className="w-48 shrink-0 border-r border-zinc-800 bg-zinc-900 py-4 hidden md:block">
+      <div className="px-4 pb-4 text-white">
+        <KlinkLogo variant="mono" size={26} />
+      </div>
       <nav className="space-y-0.5 px-2">
         {NAV.filter((item) => !item.platformOnly || isPlatform).map(({ href, label, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
@@ -33,7 +37,7 @@ export function SuperAdminSidebar({ isPlatform = false }: { isPlatform?: boolean
               className={cn(
                 "block rounded-md px-3 py-2 text-sm transition-colors",
                 active
-                  ? "bg-zinc-700 text-zinc-50 font-medium"
+                  ? "bg-klink-lime text-klink-ink font-medium"
                   : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
               )}
             >

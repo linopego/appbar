@@ -8,18 +8,23 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        // Primario Klink: pill lime con testo Ink (mai bianco su lime)
+        default:
+          "rounded-full bg-klink-lime font-semibold text-klink-ink hover:bg-klink-lime-hover",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        // Secondario Klink: bordo Ink, testo Ink, sfondo trasparente
+        outline:
+          "rounded-full border border-klink-ink bg-transparent text-klink-ink hover:bg-klink-ink/5",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-foreground underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        // Touch target ≥44px per i bottoni primari (BRAND.md)
+        default: "h-11 px-6 py-2",
+        sm: "h-9 rounded-full px-4 text-xs",
+        lg: "h-12 rounded-full px-8",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {

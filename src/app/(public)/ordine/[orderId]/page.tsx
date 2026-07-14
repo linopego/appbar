@@ -12,7 +12,7 @@ import { formatEur } from "@/lib/utils/money";
 import { PollingOrderStatus } from "./polling-order-status";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Il tuo ordine — Sistema Ticket" };
+export const metadata = { title: "Il tuo ordine" };
 
 interface PageProps {
   params: Promise<{ orderId: string }>;

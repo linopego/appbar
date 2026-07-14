@@ -7,7 +7,7 @@ import { formatEur } from "@/lib/utils/money";
 import { StaffLogoutButton } from "../pos/staff-logout-button";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Stats POS — Sistema Ticket" };
+export const metadata = { title: "Stats POS" };
 
 interface PageProps {
   params: Promise<{ venueSlug: string }>;

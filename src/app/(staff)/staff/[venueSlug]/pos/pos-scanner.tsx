@@ -7,6 +7,7 @@ import { extractTicketToken } from "@/lib/pos/extract-token";
 import { messageForCode } from "@/lib/pos/messages";
 import { playSound, vibrate } from "@/lib/pos/feedback";
 import { formatEur } from "@/lib/utils/money";
+import { KlinkLogo } from "@/components/brand/logo";
 import type { OperatorRole } from "@/lib/auth/staff";
 
 const SCANNER_ELEMENT_ID = "qr-reader";
@@ -45,21 +46,23 @@ interface Props {
 }
 
 // ── color mapping ──────────────────────────────────────────────────────────
+// Esiti secondo BRAND.md: VALIDO = fondo lime con testo Ink (il lime è il
+// colore del "sì"); NON VALIDO = fondo error con testo bianco. Il ticket
+// trovato in attesa di conferma resta su fondo scuro per leggibilità.
 function overlayBg(state: State): string {
   if (state.kind === "result") {
     switch (state.data.effectiveStatus) {
       case "ACTIVE":
-        return "bg-green-900";
+        return "bg-klink-ink text-white";
       case "CONSUMED":
-        return "bg-zinc-800";
       case "EXPIRED":
-        return "bg-zinc-700";
       case "REFUNDED":
-        return "bg-red-950";
+        return "bg-klink-error text-white";
     }
   }
-  if (state.kind === "consuming" || state.kind === "consumed") return "bg-green-900";
-  if (state.kind === "error") return "bg-red-950";
+  if (state.kind === "consuming" || state.kind === "consumed")
+    return "bg-klink-success text-klink-ink";
+  if (state.kind === "error") return "bg-klink-error text-white";
   return "bg-zinc-900";
 }
 
@@ -221,7 +224,10 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
     <div className="dark flex flex-col h-dvh bg-black text-zinc-50 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
-        <div className="text-sm font-semibold truncate">{venueName}</div>
+        <div className="flex items-center gap-2 min-w-0">
+          <KlinkLogo variant="mark" size={22} className="shrink-0" />
+          <span className="text-sm font-semibold truncate">{venueName}</span>
+        </div>
         <div className="flex items-center gap-3 text-xs text-zinc-400 shrink-0">
           <span className="hidden sm:inline">{operatorName}</span>
           <Link
@@ -233,7 +239,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
           {operatorRole === "MANAGER" && (
             <Link
               href="/admin"
-              className="underline hover:text-zinc-200 text-amber-400"
+              className="underline hover:text-zinc-200 font-semibold"
             >
               Admin
             </Link>
@@ -309,11 +315,11 @@ function OverlayContent({
         <div className="text-center space-y-6 max-w-sm w-full">
           <div>
             <div className="text-6xl font-black uppercase tracking-tight">{tier.name}</div>
-            <div className="text-3xl text-green-300 mt-2">{formatEur(tier.price)}</div>
+            <div className="text-3xl text-klink-lime mt-2 tabular-nums">{formatEur(tier.price)}</div>
           </div>
           <button
             onClick={onConsume}
-            className="w-full py-5 bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-2xl text-2xl font-bold transition-colors"
+            className="w-full py-5 bg-klink-lime hover:bg-klink-lime-hover active:bg-klink-lime-hover rounded-2xl text-2xl font-bold text-klink-ink transition-colors"
           >
             ✓ Consegnato
           </button>
@@ -352,9 +358,9 @@ function OverlayContent({
   if (state.kind === "consuming") {
     return (
       <div className="text-center space-y-4">
-        <span className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-green-400 border-t-transparent" />
+        <span className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-klink-ink border-t-transparent" />
         <div className="text-xl font-semibold">{state.tier.name}</div>
-        <div className="text-zinc-400">Conferma in corso...</div>
+        <div className="text-klink-ink/70">Conferma in corso...</div>
       </div>
     );
   }
@@ -364,7 +370,7 @@ function OverlayContent({
       <div className="text-center space-y-4">
         <div className="text-7xl">✓</div>
         <div className="text-4xl font-black uppercase">{state.tier.name}</div>
-        <div className="text-2xl text-green-300">{formatEur(state.tier.price)}</div>
+        <div className="text-2xl tabular-nums">{formatEur(state.tier.price)}</div>
       </div>
     );
   }

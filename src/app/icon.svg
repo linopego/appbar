@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Klink">
+  <rect width="64" height="64" rx="16" fill="#C8FF2E"/>
+  <path d="M30 12 Q33 32 54 36 Q33 40 30 60 Q27 40 6 36 Q27 32 30 12 Z" fill="#0F1230" transform="translate(2 -4)"/>
+  <path d="M52 10 Q53 16 59 17 Q53 18 52 24 Q51 18 45 17 Q51 16 52 10 Z" fill="#0F1230"/>
+</svg>

@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: VenuePageProps) {
   const { venueSlug } = await params;
   const venue = await db.venue.findUnique({ where: { slug: venueSlug }, select: { name: true } });
   if (!venue) return {};
-  return { title: `${venue.name} — Sistema Ticket` };
+  return { title: venue.name };
 }
 
 const HOW_IT_WORKS = [
