@@ -44,22 +44,18 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 403 });
   }
 
-  if (refund.status !== "PENDING") {
-    return NextResponse.json(
-      { ok: false, error: { code: "INVALID_STATE", message: "Il rimborso non è in stato PENDING" } },
-      { status: 422 }
-    );
-  }
-
   const processedBy =
     session.kind === "admin" ? session.session.adminUserId : session.session.operatorId;
   const processedByType =
     session.kind === "admin" ? "ADMIN_USER" : "OPERATOR";
   const now = new Date();
 
-  await db.$transaction(async (tx) => {
-    await tx.refund.update({
-      where: { id: refund.id },
+  // Claim atomico: rifiutabile da PENDING o FAILED (un refund con Stripe in
+  // errore può essere chiuso con un rifiuto). Due rifiuti concorrenti: solo il
+  // primo passa, il secondo riceve 422.
+  const rejected = await db.$transaction(async (tx) => {
+    const claimed = await tx.refund.updateMany({
+      where: { id: refund.id, status: { in: ["PENDING", "FAILED"] } },
       data: {
         status: "REJECTED",
         managerNote,
@@ -68,24 +64,35 @@ export async function POST(
         processedByType,
       },
     });
+    if (claimed.count !== 1) return false;
 
-    if (session.kind === "admin") {
-      await tx.adminAuditLog.create({
-        data: {
-          adminUserId: session.session.adminUserId,
-          action: "REFUND_REJECTED",
-          targetType: "Refund",
-          targetId: refund.id,
-          payload: {
-            amount: refund.amount.toString(),
-            ticketIds: refund.ticketIds,
-            orderId: refund.order.id,
-            managerNote,
-          },
+    // Audit SEMPRE, qualunque sia l'attore (super-admin o manager).
+    await tx.adminAuditLog.create({
+      data: {
+        actorType: processedByType,
+        ...(session.kind === "admin"
+          ? { adminUserId: session.session.adminUserId }
+          : { operatorId: session.session.operatorId }),
+        action: "REFUND_REJECTED",
+        targetType: "Refund",
+        targetId: refund.id,
+        payload: {
+          amount: refund.amount.toString(),
+          ticketIds: refund.ticketIds,
+          orderId: refund.order.id,
+          managerNote,
         },
-      });
-    }
+      },
+    });
+    return true;
   });
+
+  if (!rejected) {
+    return NextResponse.json(
+      { ok: false, error: { code: "INVALID_STATE", message: "Il rimborso non è più rifiutabile (già processato o in lavorazione)" } },
+      { status: 422 }
+    );
+  }
 
   const customerEmail = refund.order.customer.email;
   if (customerEmail) {

@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils";
 
-type RefundStatus = "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED";
+type RefundStatus = "PENDING" | "PROCESSING" | "APPROVED" | "COMPLETED" | "FAILED" | "REJECTED";
 
 const STATUS_CONFIG: Record<RefundStatus, { label: string; className: string }> = {
   PENDING: { label: "In attesa", className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  PROCESSING: { label: "In lavorazione", className: "bg-sky-100 text-sky-800 border-sky-200" },
+  FAILED: { label: "Errore, da riprovare", className: "bg-orange-100 text-orange-800 border-orange-200" },
   APPROVED: { label: "Approvato", className: "bg-blue-100 text-blue-800 border-blue-200" },
   COMPLETED: { label: "Completato", className: "bg-green-100 text-green-800 border-green-200" },
   REJECTED: { label: "Rifiutato", className: "bg-red-100 text-red-800 border-red-200" },

@@ -7,7 +7,7 @@ import { formatEur } from "@/lib/utils/money";
 
 export const dynamic = "force-dynamic";
 
-type TabStatus = "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED";
+type TabStatus = "PENDING" | "PROCESSING" | "FAILED" | "APPROVED" | "COMPLETED" | "REJECTED";
 
 function formatDate(d: Date | string) {
   return new Intl.DateTimeFormat("it-IT", {
@@ -21,6 +21,8 @@ function formatDate(d: Date | string) {
 
 const TABS: { status: TabStatus; label: string }[] = [
   { status: "PENDING", label: "Pendenti" },
+  { status: "PROCESSING", label: "In lavorazione" },
+  { status: "FAILED", label: "Falliti" },
   { status: "APPROVED", label: "Approvati" },
   { status: "COMPLETED", label: "Completati" },
   { status: "REJECTED", label: "Rifiutati" },
@@ -36,7 +38,7 @@ export default async function AdminRimborsiPage({
 
   const { status: rawStatus, page: rawPage } = await searchParams;
   const status: TabStatus =
-    (["PENDING", "APPROVED", "COMPLETED", "REJECTED"] as TabStatus[]).includes(rawStatus as TabStatus)
+    (["PENDING", "PROCESSING", "FAILED", "APPROVED", "COMPLETED", "REJECTED"] as TabStatus[]).includes(rawStatus as TabStatus)
       ? (rawStatus as TabStatus)
       : "PENDING";
   const page = Math.max(1, parseInt(rawPage ?? "1", 10));

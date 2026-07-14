@@ -190,6 +190,7 @@ model Refund {
   managerNote     String?          @db.Text
   stripeRefundId  String?          @unique
   status          RefundStatus     @default(PENDING)
+  errorMessage    String?          @db.Text // ultimo errore Stripe quando status = FAILED
   requestedAt     DateTime         @default(now())
   processedAt     DateTime?
   processedBy     String? // operator.id o adminUser.id; tipo distinto in processedByType
@@ -300,8 +301,10 @@ enum TicketStatus {
 
 enum RefundStatus {
   PENDING
+  PROCESSING
   APPROVED
   COMPLETED
+  FAILED
   REJECTED
 }
 

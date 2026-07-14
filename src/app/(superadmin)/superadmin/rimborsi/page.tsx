@@ -7,10 +7,12 @@ import { formatEur } from "@/lib/utils/money";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Rimborsi — Super Admin" };
 
-type TabStatus = "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED";
+type TabStatus = "PENDING" | "PROCESSING" | "FAILED" | "APPROVED" | "COMPLETED" | "REJECTED";
 
 const TABS: { status: TabStatus; label: string }[] = [
   { status: "PENDING", label: "Pendenti" },
+  { status: "PROCESSING", label: "In lavorazione" },
+  { status: "FAILED", label: "Falliti" },
   { status: "APPROVED", label: "Approvati" },
   { status: "COMPLETED", label: "Completati" },
   { status: "REJECTED", label: "Rifiutati" },
@@ -18,6 +20,8 @@ const TABS: { status: TabStatus; label: string }[] = [
 
 const REFUND_STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-900/50 text-yellow-400",
+  PROCESSING: "bg-sky-900/50 text-sky-400",
+  FAILED: "bg-orange-900/50 text-orange-400",
   APPROVED: "bg-blue-900/50 text-blue-400",
   COMPLETED: "bg-green-900/50 text-green-400",
   REJECTED: "bg-red-900/50 text-red-400",
@@ -43,7 +47,7 @@ export default async function SuperAdminRimborsiPage({
 
   const sp = await searchParams;
   const status: TabStatus = (
-    ["PENDING", "APPROVED", "COMPLETED", "REJECTED"] as TabStatus[]
+    ["PENDING", "PROCESSING", "FAILED", "APPROVED", "COMPLETED", "REJECTED"] as TabStatus[]
   ).includes(sp.status as TabStatus)
     ? (sp.status as TabStatus)
     : "PENDING";

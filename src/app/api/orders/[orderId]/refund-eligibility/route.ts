@@ -20,7 +20,7 @@ export async function GET(
     include: {
       tickets: { include: { priceTier: true } },
       venue: true,
-      refunds: { where: { status: { in: ["PENDING", "APPROVED"] } } },
+      refunds: { where: { status: { in: ["PENDING", "PROCESSING", "FAILED", "APPROVED"] } } },
     },
   });
 

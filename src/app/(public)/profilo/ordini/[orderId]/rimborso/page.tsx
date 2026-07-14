@@ -23,7 +23,7 @@ export default async function RimborsoPage({
     include: {
       venue: true,
       tickets: { include: { priceTier: true } },
-      refunds: { where: { status: { in: ["PENDING", "APPROVED", "COMPLETED"] } } },
+      refunds: { where: { status: { in: ["PENDING", "PROCESSING", "FAILED", "APPROVED", "COMPLETED"] } } },
     },
   });
 
