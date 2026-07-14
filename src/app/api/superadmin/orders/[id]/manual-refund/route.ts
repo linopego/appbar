@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { processRefund } from "@/lib/refunds/process";
@@ -29,9 +30,12 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "reason deve essere almeno 10 caratteri" }, { status: 400 });
   }
 
-  const order = await db.order.findUnique({
-    where: { id },
-    include: { tickets: { where: { status: "ACTIVE" } } },
+  const order = await db.order.findFirst({
+    where: { id, ...orgScopeWhere(session).byVenue },
+    include: {
+      tickets: { where: { status: "ACTIVE" } },
+      venue: { select: { organizationId: true } },
+    },
   });
 
   if (!order) {
@@ -125,6 +129,7 @@ export async function POST(
 
   await logAdminAction({
     adminUserId: session.adminUserId,
+    organizationId: order.venue.organizationId,
     action: "ORDER_MANUAL_REFUND",
     targetType: "Order",
     targetId: id,

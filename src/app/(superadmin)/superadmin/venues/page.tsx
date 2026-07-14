@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export default async function SuperAdminVenuePage() {
   if (!session) redirect("/superadmin/login");
 
   const venues = await db.venue.findMany({
+    where: orgScopeWhere(session).venue,
     include: { _count: { select: { operators: true, orders: true } } },
     orderBy: { createdAt: "desc" },
   });

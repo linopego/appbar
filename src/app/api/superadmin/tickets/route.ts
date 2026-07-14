@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
@@ -20,7 +21,8 @@ export async function GET(req: NextRequest) {
   const qrToken = url.searchParams.get("qrToken");
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
 
-  const where: Prisma.TicketWhereInput = {};
+  // ORG_ADMIN: solo ticket dei venue della propria organizzazione
+  const where: Prisma.TicketWhereInput = { ...orgScopeWhere(session).byVenue };
 
   if (statusParam) {
     const statuses = statusParam.split(",").map((s) => s.trim()).filter(Boolean);

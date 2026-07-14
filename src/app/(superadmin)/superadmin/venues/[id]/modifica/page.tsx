@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { VenueEditForm } from "./venue-edit-form";
 
@@ -16,8 +17,8 @@ export default async function VenueModificaPage({
 
   const { id } = await params;
 
-  const venue = await db.venue.findUnique({
-    where: { id },
+  const venue = await db.venue.findFirst({
+    where: { id, ...orgScopeWhere(session).venue },
     select: { id: true, name: true, slug: true, refundBlockedTimezone: true },
   });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 
@@ -12,7 +13,9 @@ export async function POST(
 
   const { id } = await params;
 
-  const user = await db.adminUser.findUnique({ where: { id } });
+  // ORG_ADMIN: può gestire solo admin della propria organizzazione
+  // (gli admin PLATFORM hanno organizationId null e restano quindi fuori scope)
+  const user = await db.adminUser.findFirst({ where: { id, ...orgScopeWhere(session).adminUser } });
   if (!user) {
     return NextResponse.json({ ok: false, error: "Utente non trovato" }, { status: 404 });
   }
@@ -41,6 +44,7 @@ export async function POST(
 
   await logAdminAction({
     adminUserId: session.adminUserId,
+    organizationId: user.organizationId ?? undefined,
     action: newActive ? "ADMIN_USER_REACTIVATED" : "ADMIN_USER_DEACTIVATED",
     targetType: "AdminUser",
     targetId: id,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 
@@ -12,7 +13,7 @@ export async function POST(
 
   const { id } = await params;
 
-  const venue = await db.venue.findUnique({ where: { id } });
+  const venue = await db.venue.findFirst({ where: { id, ...orgScopeWhere(session).venue } });
   if (!venue) {
     return NextResponse.json({ ok: false, error: "Venue non trovata" }, { status: 404 });
   }
@@ -22,6 +23,7 @@ export async function POST(
 
   await logAdminAction({
     adminUserId: session.adminUserId,
+    organizationId: venue.organizationId,
     action: newActive ? "VENUE_ACTIVATED" : "VENUE_DEACTIVATED",
     targetType: "Venue",
     targetId: id,

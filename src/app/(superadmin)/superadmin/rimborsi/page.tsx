@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 
@@ -56,7 +57,7 @@ export default async function SuperAdminRimborsiPage({
 
   const [refunds, total] = await Promise.all([
     db.refund.findMany({
-      where: { status },
+      where: { status, ...orgScopeWhere(session).byOrder },
       include: {
         order: {
           include: {
@@ -69,7 +70,7 @@ export default async function SuperAdminRimborsiPage({
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    db.refund.count({ where: { status } }),
+    db.refund.count({ where: { status, ...orgScopeWhere(session).byOrder } }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

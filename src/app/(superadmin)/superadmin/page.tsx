@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard — Super Admin" };
@@ -8,6 +9,8 @@ export const metadata = { title: "Dashboard — Super Admin" };
 export default async function SuperAdminDashboardPage() {
   const session = await requireAdmin().catch(() => null);
   if (!session) redirect("/superadmin/login");
+
+  const scope = orgScopeWhere(session);
 
   const [
     venueCount,
@@ -20,19 +23,19 @@ export default async function SuperAdminDashboardPage() {
     adminUserCount,
     recentOrders,
   ] = await Promise.all([
-    db.venue.count(),
-    db.venue.count({ where: { active: true } }),
-    db.order.count({ where: { status: { in: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } } }),
-    db.ticket.count(),
+    db.venue.count({ where: scope.venue }),
+    db.venue.count({ where: { active: true, ...scope.venue } }),
+    db.order.count({ where: { status: { in: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] }, ...scope.byVenue } }),
+    db.ticket.count({ where: scope.byVenue }),
     db.order.aggregate({
-      where: { status: { in: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } },
+      where: { status: { in: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] }, ...scope.byVenue },
       _sum: { totalAmount: true },
     }),
-    db.refund.count({ where: { status: "PENDING" } }),
-    db.operator.count({ where: { active: true } }),
-    db.adminUser.count({ where: { active: true } }),
+    db.refund.count({ where: { status: "PENDING", ...scope.byOrder } }),
+    db.operator.count({ where: { active: true, ...scope.byVenue } }),
+    db.adminUser.count({ where: { active: true, ...scope.adminUser } }),
     db.order.findMany({
-      where: { status: { in: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } },
+      where: { status: { in: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] }, ...scope.byVenue },
       orderBy: { paidAt: "desc" },
       take: 5,
       include: {

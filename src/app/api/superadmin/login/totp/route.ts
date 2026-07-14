@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
     adminUserId: adminUser.id,
     email: adminUser.email,
     name: adminUser.name,
+    role: adminUser.role,
+    organizationId: adminUser.organizationId,
   });
 
   await logAdminAction({

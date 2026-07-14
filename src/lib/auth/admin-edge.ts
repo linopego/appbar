@@ -4,6 +4,8 @@ export interface AdminTokenPayload {
   adminUserId: string;
   email: string;
   name: string;
+  role: "PLATFORM" | "ORG_ADMIN";
+  organizationId: string | null;
 }
 
 export async function verifyAdminToken(token: string): Promise<AdminTokenPayload | null> {
@@ -15,6 +17,8 @@ export async function verifyAdminToken(token: string): Promise<AdminTokenPayload
       adminUserId: payload["adminUserId"] as string,
       email: payload["email"] as string,
       name: payload["name"] as string,
+      role: (payload["role"] as "PLATFORM" | "ORG_ADMIN" | undefined) ?? "PLATFORM",
+      organizationId: (payload["organizationId"] as string | null | undefined) ?? null,
     };
   } catch {
     return null;

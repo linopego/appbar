@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
@@ -68,6 +69,7 @@ export default async function SuperAdminTicketsPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10));
 
   const where: Prisma.TicketWhereInput = {
+    ...orgScopeWhere(session).byVenue,
     ...(statuses.length > 0 ? { status: { in: statuses as never } } : {}),
     ...(venueId ? { venueId } : {}),
     ...(from || to
@@ -102,6 +104,7 @@ export default async function SuperAdminTicketsPage({
     }),
     db.ticket.count({ where }),
     db.venue.findMany({
+      where: orgScopeWhere(session).venue,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

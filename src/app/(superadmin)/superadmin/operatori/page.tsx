@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { SuperAdminOperatorToggleButton } from "./operator-toggle-button";
 import type { Prisma } from "@prisma/client";
@@ -54,6 +55,7 @@ export default async function SuperAdminOperatoriPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10));
 
   const where: Prisma.OperatorWhereInput = {
+    ...orgScopeWhere(session).byVenue,
     ...(venueId ? { venueId } : {}),
     ...(role ? { role: role as never } : {}),
     ...(activeFilter !== undefined ? { active: activeFilter } : {}),
@@ -68,7 +70,7 @@ export default async function SuperAdminOperatoriPage({
       take: PAGE_SIZE,
     }),
     db.operator.count({ where }),
-    db.venue.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.venue.findMany({ where: orgScopeWhere(session).venue, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

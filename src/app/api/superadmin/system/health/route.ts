@@ -5,6 +5,11 @@ import { db } from "@/lib/db";
 export async function GET() {
   const session = await requireAdmin().catch(() => null);
   if (!session) return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 401 });
+  // Metriche globali di piattaforma (Stripe events, email log, contatori totali):
+  // riservate agli admin PLATFORM.
+  if (session.role !== "PLATFORM") {
+    return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 403 });
+  }
 
   const [orderCount, ticketCount, refundCount, customerCount, auditLogCount, recentStripeEvents, emailStats] =
     await Promise.all([

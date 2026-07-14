@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
   const fromParam = url.searchParams.get("from");
   const toParam = url.searchParams.get("to");
 
-  const where: Prisma.AdminAuditLogWhereInput = {};
+  const where: Prisma.AdminAuditLogWhereInput = { ...orgScopeWhere(session).audit };
 
   if (actorType && actorType !== "all") {
     where.actorType = actorType as Prisma.EnumActorTypeFilter;

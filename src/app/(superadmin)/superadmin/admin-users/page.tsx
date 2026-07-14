@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function SuperAdminAdminUsersPage() {
   if (!session) redirect("/superadmin/login");
 
   const users = await db.adminUser.findMany({
+    where: orgScopeWhere(session).adminUser,
     orderBy: { createdAt: "asc" },
   });
 

@@ -81,7 +81,15 @@ export async function processRefund(params: {
 
     const refund = await tx.refund.findUniqueOrThrow({
       where: { id: refundId },
-      include: { order: { select: { id: true, stripePaymentId: true } } },
+      include: {
+        order: {
+          select: {
+            id: true,
+            stripePaymentId: true,
+            venue: { select: { organizationId: true } },
+          },
+        },
+      },
     });
     const ticketIds = refund.ticketIds as string[];
 
@@ -181,6 +189,7 @@ export async function processRefund(params: {
     // Audit SEMPRE, qualunque sia l'attore (super-admin o manager).
     await tx.adminAuditLog.create({
       data: {
+        organizationId: refund.order.venue.organizationId,
         actorType: actor.processedByType,
         ...(actor.processedByType === "ADMIN_USER"
           ? { adminUserId: actor.processedBy }

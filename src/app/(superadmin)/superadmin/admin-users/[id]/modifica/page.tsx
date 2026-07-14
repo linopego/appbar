@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { AdminUserEditForm } from "./admin-user-edit-form";
 
@@ -16,8 +17,8 @@ export default async function AdminUserModificaPage({
 
   const { id } = await params;
 
-  const user = await db.adminUser.findUnique({
-    where: { id },
+  const user = await db.adminUser.findFirst({
+    where: { id, ...orgScopeWhere(session).adminUser },
     select: { id: true, email: true, name: true },
   });
 

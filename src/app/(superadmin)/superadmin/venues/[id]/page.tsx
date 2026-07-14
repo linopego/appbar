@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import { VenueToggleActiveButton } from "./toggle-active-button";
@@ -23,8 +24,8 @@ export default async function VenueDetailPage({
 
   const { id } = await params;
 
-  const venue = await db.venue.findUnique({
-    where: { id },
+  const venue = await db.venue.findFirst({
+    where: { id, ...orgScopeWhere(session).venue },
     include: {
       operators: { orderBy: [{ role: "asc" }, { name: "asc" }] },
       priceTiers: { orderBy: { sortOrder: "asc" } },

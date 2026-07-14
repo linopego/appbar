@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import { computeTicketStatus } from "@/lib/tickets/status";
@@ -65,8 +66,8 @@ export default async function SuperAdminOrdineDetailPage({
 
   const { id } = await params;
 
-  const order = await db.order.findUnique({
-    where: { id },
+  const order = await db.order.findFirst({
+    where: { id, ...orgScopeWhere(session).byVenue },
     include: {
       customer: true,
       venue: { select: { id: true, name: true, slug: true } },

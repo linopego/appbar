@@ -69,6 +69,7 @@ export async function POST(
     // Audit SEMPRE, qualunque sia l'attore (super-admin o manager).
     await tx.adminAuditLog.create({
       data: {
+        organizationId: refund.order.venue.organizationId,
         actorType: processedByType,
         ...(session.kind === "admin"
           ? { adminUserId: session.session.adminUserId }

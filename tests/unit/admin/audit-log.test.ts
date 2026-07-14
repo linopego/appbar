@@ -3,10 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Unit tests for audit log helper — verify the right actorType is set without hitting the DB.
 
 const mockCreate = vi.fn().mockResolvedValue({ id: "audit-1" });
+// logManagerAction risolve l'organizzazione dal venue dell'operatore
+const mockOperatorFindUnique = vi
+  .fn()
+  .mockResolvedValue({ venue: { organizationId: "org-1" } });
 vi.mock("@/lib/db", () => ({
   db: {
     adminAuditLog: {
       create: (...args: unknown[]) => mockCreate(...args),
+    },
+    operator: {
+      findUnique: (...args: unknown[]) => mockOperatorFindUnique(...args),
     },
   },
 }));

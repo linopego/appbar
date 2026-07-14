@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
@@ -14,8 +15,8 @@ export async function GET(
   const { id } = await params;
 
   const [venue, orderCount, totalRevenue, ticketCount] = await Promise.all([
-    db.venue.findUnique({
-      where: { id },
+    db.venue.findFirst({
+      where: { id, ...orgScopeWhere(session).venue },
       include: {
         operators: { select: { id: true, name: true, role: true, active: true } },
         priceTiers: { orderBy: { sortOrder: "asc" } },
@@ -55,7 +56,7 @@ export async function PATCH(
 
   const { id } = await params;
 
-  const venue = await db.venue.findUnique({ where: { id } });
+  const venue = await db.venue.findFirst({ where: { id, ...orgScopeWhere(session).venue } });
   if (!venue) {
     return NextResponse.json({ ok: false, error: "Venue non trovata" }, { status: 404 });
   }
@@ -113,6 +114,7 @@ export async function PATCH(
 
     await logAdminAction({
       adminUserId: session.adminUserId,
+      organizationId: venue.organizationId,
       action: "VENUE_UPDATED",
       targetType: "Venue",
       targetId: id,
