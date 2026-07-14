@@ -1,20 +1,13 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { publicVenuesWhere } from "@/lib/venues/public";
-import { StaffVenuePicker } from "./staff-venue-picker";
+import { StaffAccessForms } from "./staff-access-forms";
 
-export const dynamic = "force-dynamic";
 export const metadata = { title: "Area staff" };
 
-// Smistamento del personale: nessuna credenziale, PIN o email qui.
-// Il login vero avviene su /staff/[slug] (PIN) o /superadmin/login.
-export default async function AccessoStaffPage() {
-  const venues = await db.venue.findMany({
-    where: publicVenuesWhere,
-    orderBy: { name: "asc" },
-    select: { name: true, slug: true },
-  });
-
+// Smistamento del personale SENZA esporre l'elenco dei locali (i clienti
+// della piattaforma non sono pubblici). Due percorsi:
+// - banco: codice locale (slug) → login PIN su /staff/[slug]
+// - manager: email + password → pannello /admin
+export default function AccessoStaffPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-12 max-w-md">
@@ -27,10 +20,10 @@ export default async function AccessoStaffPage() {
 
         <h1 className="text-2xl font-bold tracking-tight mt-4 mb-2">Area staff</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Seleziona il tuo locale per accedere al POS con il tuo PIN.
+          Accesso riservato al personale dei locali.
         </p>
 
-        <StaffVenuePicker venues={venues} />
+        <StaffAccessForms />
 
         <div className="mt-10 pt-6 border-t text-center">
           <Link

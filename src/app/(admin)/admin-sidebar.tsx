@@ -48,9 +48,9 @@ export function AdminSidebar({ venueSlug }: Props) {
       <div className="px-2 mt-4 pt-4 border-t border-zinc-100 space-y-0.5">
         <Link
           href={`/staff/${venueSlug}/pos`}
-          className="block px-3 py-2 rounded-lg text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+          className="block px-3 py-2.5 rounded-full text-sm font-semibold text-center bg-klink-lime text-klink-ink hover:bg-klink-lime-hover transition-colors"
         >
-          ← POS
+          Apri POS
         </Link>
       </div>
     </aside>

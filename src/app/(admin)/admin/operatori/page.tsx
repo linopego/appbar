@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/auth/staff";
 import { db } from "@/lib/db";
 import { OperatorToggleButton } from "./operator-toggle-button";
+import { OperatorResetPasswordButton } from "@/components/shared/operator-reset-password-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operatori — Admin" };
@@ -68,7 +69,13 @@ export default async function AdminOperatoriPage() {
                   </td>
                   <td className="px-4 py-3 text-zinc-400 text-xs hidden md:table-cell">{formatDT(op.lastLoginAt)}</td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2 flex-wrap">
+                      {op.role === "MANAGER" && (
+                        <OperatorResetPasswordButton
+                          endpoint={`/api/admin/operators/${op.id}/reset-password`}
+                          operatorName={op.name}
+                        />
+                      )}
                       {!isSelf && (
                         <>
                           <Link

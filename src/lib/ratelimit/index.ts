@@ -70,6 +70,24 @@ export const refundRequestLimiter = redis
     })
   : null;
 
+// Verifica "codice locale" su /accesso-staff (anti enumerazione slug)
+export const venueCodeLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "5 m"),
+      prefix: "rl:venue-code",
+    })
+  : null;
+
+// Login manager email+password: severo, chiave IP+email
+export const staffManagerLoginLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "15 m"),
+      prefix: "rl:staff-manager-login",
+    })
+  : null;
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string

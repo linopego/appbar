@@ -70,6 +70,8 @@ function overlayBg(state: State): string {
 export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }: Props) {
   const [state, setState] = useState<State>({ kind: "idle" });
   const [cameraError, setCameraError] = useState<string | null>(null);
+  // Camera on demand: parte SOLO dal bottone "Scansiona ticket"
+  const [scannerOn, setScannerOn] = useState(false);
   const lastScanAtRef = useRef<number>(0);
   const stateRef = useRef<State>({ kind: "idle" });
 
@@ -78,8 +80,9 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
     stateRef.current = state;
   }, [state]);
 
-  // Wake lock to keep screen on
+  // Wake lock: schermo acceso SOLO mentre lo scanner è in funzione
   useEffect(() => {
+    if (!scannerOn) return;
     let wakeLock: WakeLockSentinel | null = null;
     async function acquireLock() {
       if ("wakeLock" in navigator) {
@@ -99,7 +102,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
       document.removeEventListener("visibilitychange", handler);
       wakeLock?.release().catch(() => {});
     };
-  }, []);
+  }, [scannerOn]);
 
   const handleScan = useCallback(async (text: string) => {
     const now = Date.now();
@@ -145,8 +148,10 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
     }
   }, []);
 
-  // Mount scanner once
+  // Camera on demand: il loop (scan → feedback → camera pronta) resta
+  // identico, cambia solo quando parte e quando si ferma.
   useEffect(() => {
+    if (!scannerOn) return;
     let mounted = true;
     let scanner: import("html5-qrcode").Html5Qrcode | null = null;
 
@@ -163,11 +168,15 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
         );
       } catch (err) {
         if (!mounted) return;
-        const msg =
-          err instanceof Error && err.message.toLowerCase().includes("permission")
-            ? "Permessi camera negati. Abilita la camera nelle impostazioni del browser."
-            : "Impossibile attivare la camera. Verifica i permessi.";
+        const denied =
+          err instanceof Error &&
+          (err.message.toLowerCase().includes("permission") ||
+            err.name === "NotAllowedError");
+        const msg = denied
+          ? "Fotocamera non consentita. Tocca l'icona del lucchetto (o ⓘ) nella barra dell'indirizzo, consenti la fotocamera per questo sito e riprova."
+          : "Impossibile attivare la fotocamera. Chiudi altre app che la stanno usando e riprova.";
         setCameraError(msg);
+        setScannerOn(false);
       }
     })();
 
@@ -176,7 +185,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
       scanner?.stop().catch(() => {});
       try { scanner?.clear(); } catch { /* ignore */ }
     };
-  }, [handleScan]);
+  }, [scannerOn, handleScan]);
 
   const handleConsume = async () => {
     if (state.kind !== "result" || state.data.effectiveStatus !== "ACTIVE") return;
@@ -254,17 +263,38 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
 
       {/* Camera area */}
       <div className="flex-1 relative flex items-center justify-center bg-zinc-950">
-        {cameraError ? (
-          <div className="text-center px-6 space-y-2">
-            <div className="text-4xl">📷</div>
-            <p className="text-sm text-zinc-400">{cameraError}</p>
+        {!scannerOn ? (
+          <div className="text-center px-6 space-y-5 max-w-sm w-full">
+            {cameraError && (
+              <div className="space-y-2">
+                <div className="text-4xl">📷</div>
+                <p className="text-base text-zinc-300 leading-relaxed">{cameraError}</p>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setCameraError(null);
+                setScannerOn(true);
+              }}
+              className="w-full min-h-16 py-5 bg-klink-lime hover:bg-klink-lime-hover rounded-2xl text-2xl font-bold text-klink-ink transition-colors"
+            >
+              {cameraError ? "Riprova" : "Scansiona ticket"}
+            </button>
           </div>
         ) : (
-          <div
-            id={SCANNER_ELEMENT_ID}
-            className="w-full h-full"
-            style={{ maxHeight: "calc(100dvh - 96px)" }}
-          />
+          <>
+            <div
+              id={SCANNER_ELEMENT_ID}
+              className="w-full h-full"
+              style={{ maxHeight: "calc(100dvh - 96px)" }}
+            />
+            <button
+              onClick={() => setScannerOn(false)}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 min-h-12 rounded-full border border-zinc-600 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800 transition-colors"
+            >
+              Ferma scanner
+            </button>
+          </>
         )}
 
         {/* Overlay */}
@@ -286,7 +316,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
 
       {/* Footer status */}
       <div className="shrink-0 px-4 py-2 text-center text-xs text-zinc-500 border-t border-zinc-800">
-        {state.kind === "idle" && "Inquadra un QR..."}
+        {state.kind === "idle" && (scannerOn ? "Inquadra un QR..." : "Scanner fermo")}
         {state.kind === "scanning" && "Ricerca ticket..."}
         {state.kind === "consuming" && "Conferma in corso..."}
         {state.kind === "consumed" && "✓ Consegnato"}

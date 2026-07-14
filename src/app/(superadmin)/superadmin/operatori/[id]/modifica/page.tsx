@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { SuperAdminOperatorEditForm } from "./operator-edit-form";
+import { OperatorResetPasswordButton } from "@/components/shared/operator-reset-password-button";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,25 @@ export default async function SuperAdminOperatoreModificaPage({
           initialEmail={operator.email ?? ""}
           initialRole={operator.role}
         />
+
+        {operator.role === "MANAGER" && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-3">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
+                Password pannello
+              </h2>
+              <p className="text-xs text-zinc-500 mt-1">
+                I manager accedono al pannello del locale con email e password
+                (oltre al PIN per il banco).
+              </p>
+            </div>
+            <OperatorResetPasswordButton
+              endpoint={`/api/superadmin/operators/${id}/reset-password`}
+              operatorName={operator.name}
+              dark
+            />
+          </div>
+        )}
       </div>
     </main>
   );
