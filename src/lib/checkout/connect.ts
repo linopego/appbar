@@ -7,14 +7,21 @@ import { Prisma } from "@prisma/client";
 export interface PaymentsOrg {
   stripeAccountId: string | null;
   stripeChargesEnabled: boolean;
+  active: boolean;
 }
 
-// Un'organizzazione può incassare solo con onboarding completato:
+// Un'organizzazione può incassare solo se: attiva sulla piattaforma,
 // connected account presente E charges abilitati da Stripe.
+// Org disattivata → il checkout dei suoi venue si chiude (503), ma POS e
+// rimborsi restano operativi: i ticket già venduti sono ancora validi.
 export function isPaymentsConfigured(
   org: PaymentsOrg
 ): org is PaymentsOrg & { stripeAccountId: string } {
-  return org.stripeAccountId !== null && org.stripeChargesEnabled === true;
+  return (
+    org.active === true &&
+    org.stripeAccountId !== null &&
+    org.stripeChargesEnabled === true
+  );
 }
 
 // Application fee in centesimi: calcolo intermedio in Decimal (mai float),

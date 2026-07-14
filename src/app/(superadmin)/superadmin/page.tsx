@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/admin";
 import { orgScopeWhere } from "@/lib/auth/org-scope";
+import { formatEur } from "@/lib/utils/money";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard — Super Admin" };
@@ -47,12 +49,66 @@ export default async function SuperAdminDashboardPage() {
 
   const totalRevenue = revenueAgg._sum.totalAmount?.toFixed(2) ?? "0.00";
 
+  // Card riassuntiva piattaforma: solo per gli admin PLATFORM
+  let platformSummary: { activeOrgs: number; gmv30d: string; fees30d: string } | null = null;
+  if (session.role === "PLATFORM") {
+    // Server component force-dynamic: leggere l'ora corrente a ogni request è voluto.
+    // eslint-disable-next-line react-hooks/purity
+    const since30d = new Date(Date.now() - 30 * 86400000);
+    const [activeOrgs, agg30] = await Promise.all([
+      db.organization.count({ where: { active: true } }),
+      db.order.aggregate({
+        where: { status: "PAID", createdAt: { gte: since30d } },
+        _sum: { totalAmount: true, platformFeeAmount: true },
+      }),
+    ]);
+    platformSummary = {
+      activeOrgs,
+      gmv30d: (agg30._sum.totalAmount ?? 0).toString(),
+      fees30d: (agg30._sum.platformFeeAmount ?? 0).toString(),
+    };
+  }
+
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-sm text-zinc-400 mt-1">Panoramica cross-venue</p>
       </div>
+
+      {platformSummary && (
+        <Link
+          href="/superadmin/organizations"
+          className="block rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-zinc-600 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
+              Piattaforma
+            </h2>
+            <span className="text-xs text-zinc-500">Organizzazioni →</span>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-3">
+            <div>
+              <p className="text-xs text-zinc-500">Organizzazioni attive</p>
+              <p className="text-xl font-semibold mt-0.5 tabular-nums">
+                {platformSummary.activeOrgs}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500">GMV 30gg</p>
+              <p className="text-xl font-semibold mt-0.5 tabular-nums">
+                {formatEur(platformSummary.gmv30d)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500">Fee 30gg</p>
+              <p className="text-xl font-semibold mt-0.5 tabular-nums">
+                {formatEur(platformSummary.fees30d)}
+              </p>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

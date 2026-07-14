@@ -26,7 +26,7 @@ export default async function SuperAdminLayout({
     <div className="dark min-h-screen bg-zinc-950 text-zinc-50 flex flex-col">
       <SuperAdminHeader />
       <div className="flex flex-1 overflow-hidden">
-        <SuperAdminSidebar />
+        <SuperAdminSidebar isPlatform={session.role === "PLATFORM"} />
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>

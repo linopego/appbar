@@ -3,28 +3,68 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export function AdminUserCreateForm() {
+interface OrgOption {
+  id: string;
+  name: string;
+}
+
+export function AdminUserCreateForm({
+  sessionRole,
+  sessionOrganizationId,
+  presetOrganizationId,
+  organizations,
+}: {
+  sessionRole: "PLATFORM" | "ORG_ADMIN";
+  sessionOrganizationId: string | null;
+  presetOrganizationId: string | null;
+  organizations: OrgOption[];
+}) {
+  const isPlatform = sessionRole === "PLATFORM";
+  // ORG_ADMIN: sempre la propria org. PLATFORM: preset da query o selezione.
+  const lockedOrgId = !isPlatform ? sessionOrganizationId : presetOrganizationId;
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [role, setRole] = useState<"PLATFORM" | "ORG_ADMIN">("ORG_ADMIN");
+  const [organizationId, setOrganizationId] = useState(lockedOrgId ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const lockedOrgName =
+    lockedOrgId != null
+      ? (organizations.find((o) => o.id === lockedOrgId)?.name ?? "la tua organizzazione")
+      : null;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const effectiveRole = lockedOrgId ? "ORG_ADMIN" : role;
+    const effectiveOrgId =
+      effectiveRole === "PLATFORM" ? null : (lockedOrgId ?? (organizationId || null));
+
+    if (effectiveRole === "ORG_ADMIN" && !effectiveOrgId) {
+      setError("Seleziona l'organizzazione dell'admin.");
+      return;
+    }
 
     setLoading(true);
     try {
       const res = await fetch("/api/superadmin/admin-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), name: name.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim(),
+          role: effectiveRole,
+          organizationId: effectiveOrgId,
+        }),
       });
       const json = (await res.json()) as {
         ok: boolean;
-        data?: { temporaryPassword?: string };
+        data?: { tempPassword?: string };
         error?: string | { message?: string };
       };
 
@@ -32,12 +72,12 @@ export function AdminUserCreateForm() {
         const msg =
           typeof json.error === "string"
             ? json.error
-            : json.error?.message ?? "Errore durante la creazione";
+            : (json.error?.message ?? "Errore durante la creazione");
         setError(msg);
         return;
       }
 
-      setGeneratedPassword(json.data?.temporaryPassword ?? "");
+      setGeneratedPassword(json.data?.tempPassword ?? "");
     } catch {
       setError("Errore di rete. Riprova.");
     } finally {
@@ -79,7 +119,7 @@ export function AdminUserCreateForm() {
         </div>
 
         <p className="text-sm text-zinc-400">
-          L&apos;utente dovrà cambiare la password al primo accesso.
+          L&apos;utente dovrà cambiare la password al primo accesso e configurare il TOTP.
         </p>
 
         <Link
@@ -123,6 +163,57 @@ export function AdminUserCreateForm() {
           className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
         />
       </div>
+
+      {lockedOrgId ? (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+          <p className="text-sm text-zinc-300">
+            Ruolo: <span className="font-medium">Admin organizzazione</span>
+            {lockedOrgName && (
+              <>
+                {" "}
+                di <span className="font-medium">{lockedOrgName}</span>
+              </>
+            )}
+          </p>
+        </div>
+      ) : (
+        isPlatform && (
+          <>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-zinc-200">Ruolo</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as "PLATFORM" | "ORG_ADMIN")}
+                className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
+              >
+                <option value="ORG_ADMIN">Admin organizzazione</option>
+                <option value="PLATFORM">Admin piattaforma (vede tutto)</option>
+              </select>
+            </div>
+
+            {role === "ORG_ADMIN" && (
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-zinc-200">
+                  Organizzazione <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={organizationId}
+                  onChange={(e) => setOrganizationId(e.target.value)}
+                  required
+                  className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                >
+                  <option value="">— Seleziona —</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </>
+        )
+      )}
 
       {error && (
         <p className="text-sm text-red-400 bg-red-950/50 border border-red-800 rounded-lg px-4 py-3">
