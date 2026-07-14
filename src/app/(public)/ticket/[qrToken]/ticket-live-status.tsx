@@ -12,18 +12,21 @@ interface Props {
   initialStatus: EffectiveTicketStatus;
 }
 
+// Colori funzionali Klink (BRAND.md): il lime è il colore del "sì" (testo
+// SEMPRE Ink su lime), l'errore è bianco su error, gli stati neutri restano
+// neutri per non confondere il barista.
 const STATUS_BG: Record<EffectiveTicketStatus, string> = {
-  ACTIVE: "bg-white",
-  EXPIRED: "bg-zinc-100",
-  CONSUMED: "bg-zinc-200",
-  REFUNDED: "bg-red-50",
+  ACTIVE: "bg-klink-white",
+  EXPIRED: "bg-klink-warning/10",
+  CONSUMED: "bg-klink-cream",
+  REFUNDED: "bg-klink-error/10",
 };
 
 const STATUS_OVERLAY: Record<EffectiveTicketStatus, { label: string; className: string } | null> = {
   ACTIVE: null,
-  EXPIRED: { label: "Scaduto", className: "bg-zinc-700" },
-  CONSUMED: { label: "✓ Consegnato", className: "bg-green-700" },
-  REFUNDED: { label: "Rimborsato", className: "bg-red-700" },
+  EXPIRED: { label: "Scaduto", className: "bg-klink-warning text-klink-ink" },
+  CONSUMED: { label: "✓ Consegnato", className: "bg-klink-success text-klink-ink" },
+  REFUNDED: { label: "Rimborsato", className: "bg-klink-error text-white" },
 };
 
 export function TicketLiveStatus({ qrToken, initialStatus }: Props) {
@@ -85,7 +88,7 @@ export function TicketLiveStatus({ qrToken, initialStatus }: Props) {
         <div
           className={cn(
             "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-[-12deg] z-50",
-            "px-8 py-4 rounded-2xl shadow-2xl text-white text-3xl font-bold",
+            "px-8 py-4 rounded-2xl shadow-2xl text-3xl font-bold",
             overlay.className,
             justChanged && "animate-in fade-in zoom-in"
           )}

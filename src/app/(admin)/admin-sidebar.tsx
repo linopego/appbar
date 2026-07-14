@@ -36,7 +36,7 @@ export function AdminSidebar({ venueSlug }: Props) {
             className={cn(
               "block px-3 py-2 rounded-lg text-sm font-medium transition-colors",
               isActive(item.href, item.exact)
-                ? "bg-zinc-900 text-white"
+                ? "bg-klink-lime-soft text-klink-ink border-l-2 border-klink-lime"
                 : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
             )}
           >

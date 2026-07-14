@@ -73,7 +73,7 @@ export default async function RimborsoPage({
   const eligible = !blockedByTime && refundableTickets.length > 0 && order.refunds.length === 0;
 
   return (
-    <main className="min-h-dvh bg-zinc-50">
+    <main className="min-h-dvh bg-background">
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div className="space-y-1">
           <Link href={`/ordine/${orderId}`} className="text-sm text-zinc-500 hover:text-zinc-800">

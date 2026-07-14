@@ -1,6 +1,8 @@
-# Sistema Ticket
+# Klink
 
-Sistema cashless basato su ticket prepagati con QR code per una catena di locali (La Casa dei Gelsi, Studios Club – DECÒ, Tenuta Villa Peggy's). Supporta acquisto online, scansione POS, gestione per venue e super-admin cross-venue.
+Compri i drink prima, li ritiri con un QR.
+
+Klink è una piattaforma cashless multi-organizzazione basata su ticket prepagati con QR code. Supporta acquisto online con Stripe Connect, scansione POS al banco, pannelli per manager di venue, admin di organizzazione e admin di piattaforma. (Il repo si chiama `ticket-sistema`/`appbar` per ragioni storiche: il nome prodotto vive in `src/lib/brand.ts`.)
 
 ## Prerequisiti
 

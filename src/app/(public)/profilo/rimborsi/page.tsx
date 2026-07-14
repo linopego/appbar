@@ -28,7 +28,7 @@ export default async function RimborsiPage() {
   });
 
   return (
-    <main className="min-h-dvh bg-zinc-50">
+    <main className="min-h-dvh bg-background">
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">

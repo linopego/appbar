@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { KlinkLogo } from "@/components/brand/logo";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { publicVenuesWhere } from "@/lib/venues/public";
@@ -23,10 +25,11 @@ export default async function HomePage() {
     <main className="min-h-screen bg-background flex flex-col">
       <div className="container mx-auto px-4 py-12 sm:py-16 flex-1">
         <header className="text-center mb-10">
-          <h1 className="text-4xl font-bold tracking-tight mb-3">Sistema Ticket</h1>
-          <p className="text-lg text-muted-foreground">
-            Compra i tuoi ticket online, mostrali al banco. Senza contanti, senza code.
-          </p>
+          <div className="flex justify-center mb-4">
+            <KlinkLogo variant="lockup" size={44} className="text-foreground" />
+          </div>
+          <h1 className="sr-only">{BRAND_NAME}</h1>
+          <p className="text-lg text-muted-foreground">{BRAND_TAGLINE}</p>
           {isLoggedIn && (
             <Button asChild variant="outline" className="mt-5">
               <Link href="/profilo">🎟️ I miei ticket</Link>
@@ -62,7 +65,7 @@ export default async function HomePage() {
 
       <footer className="border-t py-6">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Sistema Ticket</p>
+          <p>&copy; {new Date().getFullYear()} {BRAND_NAME}</p>
           <nav className="flex items-center gap-5">
             <Link href="/accesso-staff" className="hover:text-foreground transition-colors">
               Area staff

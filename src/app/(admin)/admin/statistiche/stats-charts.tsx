@@ -25,7 +25,15 @@ interface TierRow {
   consumed: number;
 }
 
-const COLORS = ["#18181b", "#52525b", "#a1a1aa", "#d4d4d8", "#71717a", "#3f3f46"];
+// Palette grafici dai token di tema (recharts accetta stringhe CSS var())
+const COLORS = [
+  "var(--color-klink-ink)",
+  "var(--color-klink-ink-soft)",
+  "var(--color-klink-ink-muted)",
+  "var(--color-klink-border)",
+  "var(--color-klink-lime-hover)",
+  "var(--color-klink-warning)",
+];
 
 export function DailyBarChart({ data }: { data: DailyRow[] }) {
   const display = data.slice(-30).map((r) => ({
@@ -40,8 +48,8 @@ export function DailyBarChart({ data }: { data: DailyRow[] }) {
         <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
         <Tooltip />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="sold" name="Venduti" fill="#18181b" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="consumed" name="Consegnati" fill="#a1a1aa" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="sold" name="Venduti" fill="var(--color-klink-ink)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="consumed" name="Consegnati" fill="var(--color-klink-lime-hover)" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

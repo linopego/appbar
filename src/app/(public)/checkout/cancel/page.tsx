@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Pagamento annullato — Sistema Ticket" };
+export const metadata = { title: "Pagamento annullato" };
 
 export default function CheckoutCancelPage() {
   return (

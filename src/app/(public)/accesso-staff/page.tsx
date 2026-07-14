@@ -4,7 +4,7 @@ import { publicVenuesWhere } from "@/lib/venues/public";
 import { StaffVenuePicker } from "./staff-venue-picker";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Area staff — Sistema Ticket" };
+export const metadata = { title: "Area staff" };
 
 // Smistamento del personale: nessuna credenziale, PIN o email qui.
 // Il login vero avviene su /staff/[slug] (PIN) o /superadmin/login.
