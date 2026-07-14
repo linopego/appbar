@@ -8,3 +8,8 @@ export const BRAND_TAGLINE = "Compri i drink prima, li ritiri con un QR.";
 // Colore tema del browser (Ink). Unico punto in cui l'hex vive fuori da
 // globals.css: i metadata Next richiedono una stringa letterale.
 export const BRAND_THEME_COLOR = "#0F1230";
+
+// Contatto commerciale per i gestori di locali (CTA della homepage).
+// NEXT_PUBLIC_*: inlineata al build, configurabile per ambiente.
+export const CONTACT_EMAIL =
+  process.env["NEXT_PUBLIC_CONTACT_EMAIL"] ?? "info@example.com";
