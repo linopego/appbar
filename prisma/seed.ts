@@ -192,8 +192,32 @@ async function main() {
         data: { role: "PLATFORM", organizationId: null },
       });
     }
+
+    // Reset password di emergenza: se SUPER_ADMIN_RESET_PASSWORD è impostata
+    // (min 12 caratteri), la password del super-admin viene reimpostata a quel
+    // valore. RIMUOVERE la variabile dopo il login, altrimenti ogni deploy la
+    // reimposta di nuovo.
+    const resetPassword = process.env["SUPER_ADMIN_RESET_PASSWORD"];
+    if (resetPassword && resetPassword.length >= 12) {
+      await db.adminUser.update({
+        where: { id: existingAdmin.id },
+        data: {
+          passwordHash: await bcrypt.hash(resetPassword, 10),
+          mustChangePassword: true,
+        },
+      });
+      console.log(
+        "\n🔐 Password super-admin REIMPOSTATA dal valore di SUPER_ADMIN_RESET_PASSWORD." +
+          "\n   Rimuovi subito la variabile d'ambiente dopo il primo login."
+      );
+    } else if (resetPassword) {
+      console.log(
+        "\n⚠️  SUPER_ADMIN_RESET_PASSWORD ignorata: deve avere almeno 12 caratteri."
+      );
+    }
+
     console.log(
-      `\nℹ️  Super-admin già presente: ${SUPER_ADMIN_EMAIL} (password invariata, role PLATFORM)`
+      `\nℹ️  Super-admin già presente: ${SUPER_ADMIN_EMAIL} (role PLATFORM)`
     );
   } else {
     const tempPassword = generatePassword(16);
