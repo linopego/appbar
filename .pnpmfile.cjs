@@ -1,4 +1,4 @@
-function readPackage(pkg, _context) {
+function readPackage(pkg) {
   return pkg;
 }
 

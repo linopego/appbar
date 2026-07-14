@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth/admin";
 import { SuperAdminHeader } from "./superadmin-layout-header";
 import { SuperAdminSidebar } from "./superadmin-layout-sidebar";

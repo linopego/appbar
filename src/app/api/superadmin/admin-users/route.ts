@@ -6,7 +6,7 @@ import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await requireAdmin().catch(() => null);
   if (!session) return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 401 });
 

@@ -21,6 +21,8 @@ export default async function SuperAdminSistemaPage() {
   const session = await requireAdmin().catch(() => null);
   if (!session) redirect("/superadmin/login");
 
+  // Server component force-dynamic: leggere l'ora corrente a ogni request è voluto.
+  // eslint-disable-next-line react-hooks/purity
   const since24h = new Date(Date.now() - 86400000);
 
   const [

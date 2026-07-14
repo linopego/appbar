@@ -82,7 +82,7 @@ export function InvalidateTicketsForm({ tickets }: { tickets: Ticket[] }) {
         </button>
 
         <p className="text-xs text-zinc-400">
-          ⚠️ L'invalidazione non genera un rimborso automatico su Stripe. Usa la sezione Rimborsi per rimborsare il cliente.
+          ⚠️ L&apos;invalidazione non genera un rimborso automatico su Stripe. Usa la sezione Rimborsi per rimborsare il cliente.
         </p>
       </div>
 

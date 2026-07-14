@@ -84,7 +84,6 @@ export async function POST(
       where: { orderId: order.id },
       select: { status: true },
     });
-    const allRefunded = allTickets.every((t) => t.status === "REFUNDED" || t.status === "CONSUMED");
     const anyActive = allTickets.some((t) => t.status === "ACTIVE");
 
     await tx.order.update({

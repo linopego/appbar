@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await requireAdmin().catch(() => null);
   if (!session) return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 401 });
 

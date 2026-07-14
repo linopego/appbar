@@ -4,7 +4,7 @@ import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await requireAdmin().catch(() => null);
   if (!session) return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 401 });
 
