@@ -103,6 +103,12 @@ export default async function VenueDetailPage({
               active={venue.active}
               name={venue.name}
             />
+            <a
+              href={`/api/superadmin/venues/${id}/qr-poster`}
+              className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-zinc-100 text-sm font-medium transition-colors"
+            >
+              Scarica QR del locale
+            </a>
           </div>
         </div>
 
