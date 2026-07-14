@@ -12,12 +12,14 @@ datasource db {
 // =====================================================
 
 model Venue {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  active                Boolean  @default(true)
+  refundBlockedWindows  Json? // [{ day: 0-6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }]
+  refundBlockedTimezone String   @default("Europe/Rome")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   priceTiers PriceTier[]
   operators  Operator[]
@@ -28,15 +30,16 @@ model Venue {
 model PriceTier {
   id        String   @id @default(cuid())
   venueId   String
-  name      String   // "Acqua", "Analcolico", "Birra", "Red Bull", "Drink", "Drink Premium"
+  name      String // "Acqua", "Analcolico", "Birra", "Red Bull", "Drink", "Drink Premium"
   price     Decimal  @db.Decimal(10, 2)
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  venue   Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  tickets Ticket[]
+  venue      Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tickets    Ticket[]
+  orderItems OrderItem[]
 
   @@unique([venueId, name])
   @@index([venueId, active])
@@ -123,14 +126,30 @@ model Order {
   updatedAt       DateTime    @updatedAt
   paidAt          DateTime?
 
-  customer Customer @relation(fields: [customerId], references: [id])
-  venue    Venue    @relation(fields: [venueId], references: [id])
+  customer Customer    @relation(fields: [customerId], references: [id])
+  venue    Venue       @relation(fields: [venueId], references: [id])
   tickets  Ticket[]
   refunds  Refund[]
+  items    OrderItem[]
 
   @@index([customerId, createdAt])
   @@index([venueId, createdAt])
   @@index([status])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  priceTierId String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  tierName    String
+  createdAt   DateTime @default(now())
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  priceTier PriceTier @relation(fields: [priceTierId], references: [id])
+
+  @@index([orderId])
 }
 
 model Ticket {
@@ -143,7 +162,7 @@ model Ticket {
   status      TicketStatus @default(ACTIVE)
   expiresAt   DateTime
   consumedAt  DateTime?
-  consumedBy  String?      // operatorId
+  consumedBy  String? // operatorId
   refundedAt  DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -173,7 +192,7 @@ model Refund {
   status          RefundStatus     @default(PENDING)
   requestedAt     DateTime         @default(now())
   processedAt     DateTime?
-  processedBy     String?          // operator.id o adminUser.id; tipo distinto in processedByType
+  processedBy     String? // operator.id o adminUser.id; tipo distinto in processedByType
   processedByType ProcessedByType?
 
   order Order @relation(fields: [orderId], references: [id])
@@ -190,15 +209,17 @@ model Operator {
   id          String       @id @default(cuid())
   venueId     String
   name        String
-  pinHash     String       // bcrypt
+  email       String?
+  pinHash     String // bcrypt
   role        OperatorRole
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   lastLoginAt DateTime?
 
-  venue   Venue    @relation(fields: [venueId], references: [id])
-  tickets Ticket[]
+  venue     Venue           @relation(fields: [venueId], references: [id])
+  tickets   Ticket[]
+  auditLogs AdminAuditLog[]
 
   @@index([venueId, active])
 }
@@ -224,19 +245,23 @@ model AdminUser {
 }
 
 model AdminAuditLog {
-  id          String   @id @default(cuid())
-  adminUserId String
-  action      String   // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
-  targetType  String?  // "Ticket", "Order", "Operator", "Venue", "PriceTier"
+  id          String    @id @default(cuid())
+  adminUserId String?
+  operatorId  String?
+  actorType   ActorType @default(ADMIN_USER)
+  action      String // "REFUND_APPROVED", "TICKET_INVALIDATED", "OPERATOR_CREATED", ecc.
+  targetType  String? // "Ticket", "Order", "Operator", "Venue", "PriceTier"
   targetId    String?
-  payload     Json?    // snapshot del contesto
+  payload     Json? // snapshot del contesto
   ipAddress   String?
-  userAgent   String?  @db.Text
-  createdAt   DateTime @default(now())
+  userAgent   String?   @db.Text
+  createdAt   DateTime  @default(now())
 
-  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id])
+  operator  Operator?  @relation(fields: [operatorId], references: [id])
 
   @@index([adminUserId, createdAt])
+  @@index([operatorId, createdAt])
   @@index([targetType, targetId])
   @@index([action, createdAt])
 }
@@ -290,4 +315,32 @@ enum ProcessedByType {
   OPERATOR
   ADMIN_USER
   SYSTEM
+}
+
+enum ActorType {
+  ADMIN_USER
+  OPERATOR
+  SYSTEM
+}
+
+model EmailLog {
+  id           String      @id @default(cuid())
+  to           String
+  subject      String
+  template     String
+  resendId     String?
+  status       EmailStatus @default(SENT)
+  errorMessage String?     @db.Text
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+
+  @@index([to, createdAt])
+  @@index([template, createdAt])
+  @@index([status, createdAt])
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  BOUNCED
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,7 +10,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { OrderStatusBanner } from "@/components/shared/order-status-banner";
+import { computeTicketStatus } from "@/lib/tickets/status";
+import { formatEur } from "@/lib/utils/money";
 import { LogoutButton } from "./logout-button";
+
+export const dynamic = "force-dynamic";
+
+const formatDateTime = (d: Date) =>
+  new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
 
 export default async function ProfiloPage() {
   const session = await auth();
@@ -17,10 +33,21 @@ export default async function ProfiloPage() {
     redirect("/login?callbackUrl=/profilo");
   }
 
-  const accounts = await db.customerAccount.findMany({
-    where: { customerId: session.user.id },
-    select: { provider: true },
-  });
+  const [accounts, orders] = await Promise.all([
+    db.customerAccount.findMany({
+      where: { customerId: session.user.id },
+      select: { provider: true },
+    }),
+    db.order.findMany({
+      where: { customerId: session.user.id },
+      include: {
+        venue: { select: { name: true, slug: true } },
+        tickets: { select: { id: true, status: true, expiresAt: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+  ]);
 
   const providerLabels: Record<string, string> = {
     google: "Google",
@@ -77,7 +104,58 @@ export default async function ProfiloPage() {
             <CardTitle>I tuoi ordini</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Nessun ordine ancora.</p>
+            {orders.length === 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Non hai ancora effettuato ordini.</p>
+                <Button asChild variant="outline">
+                  <Link href="/">Esplora i locali</Link>
+                </Button>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {orders.map((order) => {
+                  const counts = {
+                    active: order.tickets.filter(
+                      (t) => computeTicketStatus(t) === "ACTIVE"
+                    ).length,
+                    consumed: order.tickets.filter((t) => t.status === "CONSUMED").length,
+                    expired: order.tickets.filter((t) => computeTicketStatus(t) === "EXPIRED")
+                      .length,
+                    refunded: order.tickets.filter((t) => t.status === "REFUNDED").length,
+                  };
+                  const summaryParts: string[] = [];
+                  if (counts.active) summaryParts.push(`${counts.active} attivi`);
+                  if (counts.consumed) summaryParts.push(`${counts.consumed} usati`);
+                  if (counts.expired) summaryParts.push(`${counts.expired} scaduti`);
+                  if (counts.refunded) summaryParts.push(`${counts.refunded} rimborsati`);
+
+                  return (
+                    <li key={order.id}>
+                      <Link
+                        href={`/ordine/${order.id}`}
+                        className="block rounded-lg border p-4 hover:bg-accent transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <div className="font-semibold">{order.venue.name}</div>
+                          <OrderStatusBanner status={order.status} />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateTime(order.createdAt)}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="text-sm text-muted-foreground">
+                            {summaryParts.length > 0
+                              ? summaryParts.join(", ")
+                              : `${order.tickets.length} ticket`}
+                          </div>
+                          <div className="font-medium">{formatEur(order.totalAmount)}</div>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

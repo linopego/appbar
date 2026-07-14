@@ -30,6 +30,46 @@ export const adminLoginLimiter = redis
     })
   : null;
 
+export const ticketStatusLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 m"),
+      prefix: "rl:ticket-status",
+    })
+  : null;
+
+export const checkoutLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "5 m"),
+      prefix: "rl:checkout",
+    })
+  : null;
+
+export const posLookupLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(120, "1 m"),
+      prefix: "rl:pos-lookup",
+    })
+  : null;
+
+export const posConsumeLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 m"),
+      prefix: "rl:pos-consume",
+    })
+  : null;
+
+export const refundRequestLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "1 h"),
+      prefix: "rl:refund-request",
+    })
+  : null;
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string

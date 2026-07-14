@@ -5,6 +5,29 @@ const db = new PrismaClient();
 
 // ── Dati venue ───────────────────────────────────────────────────────────────
 
+// Refund blocked windows per venue
+// day: 0=Sunday, 1=Monday, ..., 6=Saturday
+// Times span midnight: e.g. Fri 22:00 → Sat 06:00 means day=5 (Fri) 22:00-06:00
+type RefundWindow = { day: number; startHour: number; startMin: number; endHour: number; endMin: number };
+
+const VENUE_REFUND_WINDOWS: Record<string, RefundWindow[]> = {
+  "studios-deco": [
+    // Thu–Sun 22:00–06:00
+    { day: 4, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }, // Thu
+    { day: 5, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }, // Fri
+    { day: 6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }, // Sat
+    { day: 0, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }, // Sun
+  ],
+  "casa-dei-gelsi": [
+    { day: 5, startHour: 19, startMin: 0, endHour: 2, endMin: 0 }, // Fri
+    { day: 6, startHour: 19, startMin: 0, endHour: 2, endMin: 0 }, // Sat
+  ],
+  "villa-peggy": [
+    { day: 5, startHour: 19, startMin: 0, endHour: 2, endMin: 0 }, // Fri
+    { day: 6, startHour: 19, startMin: 0, endHour: 2, endMin: 0 }, // Sat
+  ],
+};
+
 const VENUES = [
   { name: "La Casa dei Gelsi", slug: "casa-dei-gelsi" },
   { name: "Studios Club – DECÒ", slug: "studios-deco" },
@@ -49,11 +72,24 @@ async function main() {
 
   // ── Venue + PriceTier + Operatori ─────────────────────────────────────────
   for (const venueData of VENUES) {
+    const windows = VENUE_REFUND_WINDOWS[venueData.slug] ?? null;
+
     // Venue
     const venue = await db.venue.upsert({
       where: { slug: venueData.slug },
-      update: { name: venueData.name, active: true },
-      create: { name: venueData.name, slug: venueData.slug, active: true },
+      update: {
+        name: venueData.name,
+        active: true,
+        refundBlockedWindows: windows ?? undefined,
+        refundBlockedTimezone: "Europe/Rome",
+      },
+      create: {
+        name: venueData.name,
+        slug: venueData.slug,
+        active: true,
+        refundBlockedWindows: windows ?? undefined,
+        refundBlockedTimezone: "Europe/Rome",
+      },
     });
     venueCount++;
 
@@ -77,16 +113,18 @@ async function main() {
     const existingManager = await db.operator.findFirst({
       where: { venueId: venue.id, name: "Manager Demo" },
     });
+    const managerEmail = `manager-${venueData.slug}@example.com`;
     if (existingManager) {
       await db.operator.update({
         where: { id: existingManager.id },
-        data: { role: OperatorRole.MANAGER, active: true },
+        data: { role: OperatorRole.MANAGER, active: true, email: managerEmail },
       });
     } else {
       await db.operator.create({
         data: {
           venueId: venue.id,
           name: "Manager Demo",
+          email: managerEmail,
           pinHash: managerPinHash,
           role: OperatorRole.MANAGER,
           active: true,
@@ -124,7 +162,6 @@ async function main() {
   });
 
   if (existingAdmin) {
-    // Non sovrascrivere il passwordHash se l'admin esiste già
     console.log(
       `\nℹ️  Super-admin già presente: ${SUPER_ADMIN_EMAIL} (password invariata)`
     );
@@ -155,7 +192,6 @@ async function main() {
   }
 
   if (!adminCreated) {
-    // Print riepilogo senza mostrare password (già esistente)
     console.log(`
 ✅ Seed completato:
   - ${venueCount} venue
