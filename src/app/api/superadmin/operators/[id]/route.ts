@@ -74,6 +74,19 @@ export async function PATCH(
     updates.role = body.role as ValidRole;
   }
 
+  // Stato risultante: un MANAGER deve sempre avere un'email (login pannello)
+  {
+    const resultingRole = updates.role ?? operator.role;
+    const resultingEmail =
+      updates.email !== undefined ? updates.email : operator.email;
+    if (resultingRole === "MANAGER" && !resultingEmail) {
+      return NextResponse.json(
+        { ok: false, error: "L'email è obbligatoria per gli operatori MANAGER" },
+        { status: 400 }
+      );
+    }
+  }
+
   if (body.pin !== undefined) {
     if (typeof body.pin !== "string" || !/^\d{4,6}$/.test(body.pin)) {
       return NextResponse.json({ ok: false, error: "pin deve essere 4-6 cifre" }, { status: 400 });

@@ -33,6 +33,13 @@ export async function POST(req: NextRequest) {
   if (email !== undefined && email !== null && typeof email !== "string") {
     return NextResponse.json({ ok: false, error: "email non valida" }, { status: 400 });
   }
+  // I MANAGER accedono al pannello con email+password: l'email è obbligatoria
+  if (role === "MANAGER" && (typeof email !== "string" || email.trim() === "")) {
+    return NextResponse.json(
+      { ok: false, error: "L'email è obbligatoria per gli operatori MANAGER" },
+      { status: 400 }
+    );
+  }
 
   const pinHash = await bcrypt.hash(pin, 12);
 

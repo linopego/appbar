@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { createStaffSession } from "@/lib/auth/staff";
+import { staffLandingPath } from "@/lib/auth/staff-landing";
 import { staffLoginSchema } from "@/lib/validators/auth-staff";
 import { staffLoginLimiter, checkRateLimit } from "@/lib/ratelimit";
 import { getClientIp } from "@/lib/utils/request";
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    redirectTo: `/staff/${venue.slug}/pos`,
+    // Manager → pannello; barista/cassiere → POS
+    redirectTo: staffLandingPath(operator.role, venue.slug),
   });
 }

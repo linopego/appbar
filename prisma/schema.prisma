@@ -241,8 +241,11 @@ model Operator {
   id          String       @id @default(cuid())
   venueId     String
   name        String
-  email       String?
-  pinHash     String // bcrypt
+  email       String? // obbligatoria (validazione applicativa) per i MANAGER
+  pinHash     String // bcrypt — login PIN al banco, tutti i ruoli
+  // Login email+password del pannello: valorizzata SOLO per i MANAGER
+  passwordHash       String?
+  mustChangePassword Boolean @default(false)
   role        OperatorRole
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
