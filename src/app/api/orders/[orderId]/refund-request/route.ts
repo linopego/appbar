@@ -54,7 +54,7 @@ export async function POST(
         },
       },
       customer: true,
-      refunds: { where: { status: { in: ["PENDING", "APPROVED"] } } },
+      refunds: { where: { status: { in: ["PENDING", "PROCESSING", "FAILED", "APPROVED"] } } },
     },
   });
 

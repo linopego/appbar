@@ -73,21 +73,6 @@ export async function POST(req: NextRequest) {
 
   await destroyAdminSession();
 
-  // Demo mode: salta TOTP completamente — rimuovi DEMO_MODE per ripristinare.
-  if (process.env.DEMO_MODE === "true") {
-    const { createAdminSession: createSession } = await import("@/lib/auth/admin");
-    await createSession({
-      adminUserId: adminUser.id,
-      email: adminUser.email,
-      name: adminUser.name,
-    });
-    await db.adminUser.update({
-      where: { id: adminUser.id },
-      data: { lastLoginAt: new Date() },
-    });
-    return NextResponse.json({ ok: true, redirectTo: "/superadmin" });
-  }
-
   if (!adminUser.totpEnabled) {
     // Setup TOTP iniziale: rigenero il secret e lo salvo (non era confermato).
     const totpSecret = generateTotpSecret();

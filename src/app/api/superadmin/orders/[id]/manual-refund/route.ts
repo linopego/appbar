@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
-import { stripe } from "@/lib/stripe/client";
+import { processRefund } from "@/lib/refunds/process";
 import { Prisma } from "@prisma/client";
 
+// Rimborso manuale super-admin: crea il record Refund in PENDING e lo processa
+// con la stessa macchina a stati dell'approvazione (claim atomico + idempotency
+// key Stripe + finalizzazione). Vedi src/lib/refunds/process.ts.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -42,8 +45,10 @@ export async function POST(
     );
   }
 
+  // PROCESSING e FAILED contano come attivi: un refund fallito va ritentato
+  // (è rientrabile), non duplicato con un nuovo record.
   const activeRefund = await db.refund.findFirst({
-    where: { orderId: id, status: { in: ["PENDING", "APPROVED"] } },
+    where: { orderId: id, status: { in: ["PENDING", "PROCESSING", "APPROVED", "FAILED"] } },
   });
   if (activeRefund) {
     return NextResponse.json(
@@ -74,55 +79,49 @@ export async function POST(
     return NextResponse.json({ ok: false, error: { code: "NO_PAYMENT_ID" } }, { status: 422 });
   }
 
-  // Create refund record with APPROVED status
+  // Record in PENDING: sarà la macchina a stati a portarlo a COMPLETED.
   const refundRecord = await db.refund.create({
     data: {
       orderId: id,
       amount: totalAmount,
       ticketIds,
       reason: reason.trim(),
-      status: "APPROVED",
+      status: "PENDING",
       stripeRefundId: null,
     },
   });
 
-  // Execute Stripe refund
-  const stripeRefund = await stripe.refunds.create({
-    payment_intent: order.stripePaymentId,
-    amount: Math.round(Number(totalAmount) * 100),
+  const result = await processRefund({
+    refundId: refundRecord.id,
+    actor: { processedBy: session.adminUserId, processedByType: "ADMIN_USER" },
   });
 
-  const now = new Date();
-
-  // Update refund to COMPLETED and tickets to REFUNDED, then recalculate order status
-  await db.$transaction(async (tx) => {
-    await tx.refund.update({
-      where: { id: refundRecord.id },
-      data: {
-        status: "COMPLETED",
-        stripeRefundId: stripeRefund.id,
-        processedAt: now,
-        processedBy: session.adminUserId,
-        processedByType: "ADMIN_USER",
-      },
-    });
-
-    await tx.ticket.updateMany({
-      where: { id: { in: ticketIds } },
-      data: { status: "REFUNDED", refundedAt: now },
-    });
-
-    // Determine final order status
-    const remainingActive = await tx.ticket.count({
-      where: { orderId: id, status: "ACTIVE" },
-    });
-
-    const newOrderStatus = remainingActive === 0 ? "REFUNDED" : "PARTIALLY_REFUNDED";
-    await tx.order.update({
-      where: { id },
-      data: { status: newOrderStatus },
-    });
-  });
+  if (!result.ok) {
+    switch (result.code) {
+      case "ALREADY_PROCESSED":
+        return NextResponse.json(
+          { ok: false, error: { code: "ALREADY_PROCESSED", refundId: refundRecord.id } },
+          { status: 409 }
+        );
+      case "TICKETS_CHANGED":
+        return NextResponse.json(
+          {
+            ok: false,
+            error: {
+              code: "TICKETS_CHANGED",
+              refundId: refundRecord.id,
+              invalidTicketIds: result.invalidTicketIds,
+            },
+          },
+          { status: 409 }
+        );
+      case "STRIPE_ERROR":
+        return NextResponse.json(
+          { ok: false, error: { code: "STRIPE_ERROR", refundId: refundRecord.id } },
+          { status: 502 }
+        );
+    }
+  }
 
   await logAdminAction({
     adminUserId: session.adminUserId,

@@ -22,7 +22,7 @@ function formatDate(d: Date | string | null): string {
 
 interface RefundTimelineProps {
   requestedAt: Date | string;
-  status: "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED";
+  status: "PENDING" | "PROCESSING" | "APPROVED" | "COMPLETED" | "FAILED" | "REJECTED";
   processedAt?: Date | string | null;
   processedByName?: string | null;
   managerNote?: string | null;
@@ -46,6 +46,14 @@ export function RefundTimeline({
 
   if (status === "PENDING") {
     steps.push({ label: "In attesa di revisione", date: null, active: false });
+  } else if (status === "PROCESSING" || status === "FAILED") {
+    // Stati transitori della lavorazione: per il cliente il rimborso è
+    // semplicemente in elaborazione (FAILED è rientrabile lato manager).
+    steps.push({
+      label: "Rimborso in elaborazione",
+      date: null,
+      active: false,
+    });
   } else if (status === "APPROVED" || status === "COMPLETED") {
     steps.push({
       label: "Approvato",

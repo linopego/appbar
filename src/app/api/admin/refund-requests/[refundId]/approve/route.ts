@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminOrManagerSession } from "@/lib/auth/admin-or-manager";
 import { db } from "@/lib/db";
-import { stripe } from "@/lib/stripe/client";
+import { processRefund } from "@/lib/refunds/process";
 import { sendRefundApprovedEmail } from "@/lib/email/refund-emails";
 
+// Approvazione rimborso in tre fasi (vedi src/lib/refunds/process.ts):
+// 1. claim atomico PENDING/PROCESSING/FAILED → PROCESSING + lock FOR UPDATE dei ticket
+// 2. refund Stripe con idempotency key `refund-{id}`
+// 3. finalizzazione: ticket REFUNDED, ordine ricalcolato, refund COMPLETED, audit log
+// Un refund PROCESSING (crash tra fase 2 e 3) o FAILED è ri-approvabile in sicurezza.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ refundId: string }> }
@@ -38,96 +43,67 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 403 });
   }
 
-  if (refund.status !== "PENDING") {
-    return NextResponse.json(
-      { ok: false, error: "Il rimborso non è in stato PENDING" },
-      { status: 422 }
-    );
-  }
+  const actor = {
+    processedBy:
+      session.kind === "admin" ? session.session.adminUserId : session.session.operatorId,
+    processedByType: (session.kind === "admin" ? "ADMIN_USER" : "OPERATOR") as
+      | "ADMIN_USER"
+      | "OPERATOR",
+  };
 
-  const processedBy =
-    session.kind === "admin" ? session.session.adminUserId : session.session.operatorId;
-  const processedByType =
-    session.kind === "admin" ? "ADMIN_USER" : "OPERATOR";
-
-  // Issue Stripe refund
-  const order = refund.order;
-  let stripeRefundId: string | null = null;
-
-  if (order.stripePaymentId) {
-    try {
-      const stripeRefund = await stripe.refunds.create({
-        payment_intent: order.stripePaymentId,
-        amount: Math.round(Number(refund.amount) * 100), // cents
-      });
-      stripeRefundId = stripeRefund.id;
-    } catch (err) {
-      console.error("[Refund] Stripe refund failed:", err);
-      return NextResponse.json(
-        { ok: false, error: "Errore durante il rimborso Stripe" },
-        { status: 502 }
-      );
-    }
-  }
-
-  // Atomic update: refund → APPROVED/COMPLETED, tickets → REFUNDED, order → REFUNDED/PARTIALLY_REFUNDED
-  await db.$transaction(async (tx) => {
-    const ticketIds = refund.ticketIds as string[];
-    const now = new Date();
-
-    await tx.ticket.updateMany({
-      where: { id: { in: ticketIds } },
-      data: { status: "REFUNDED", refundedAt: now },
-    });
-
-    const allTickets = await tx.ticket.findMany({
-      where: { orderId: order.id },
-      select: { status: true },
-    });
-    const allRefunded = allTickets.every((t) => t.status === "REFUNDED" || t.status === "CONSUMED");
-    const anyActive = allTickets.some((t) => t.status === "ACTIVE");
-
-    await tx.order.update({
-      where: { id: order.id },
-      data: {
-        status: anyActive ? "PARTIALLY_REFUNDED" : "REFUNDED",
-      },
-    });
-
-    const newStatus = stripeRefundId ? "COMPLETED" : "APPROVED";
-    await tx.refund.update({
-      where: { id: refund.id },
-      data: {
-        status: newStatus,
-        stripeRefundId,
-        managerNote: body.managerNote?.trim() || null,
-        processedAt: now,
-        processedBy,
-        processedByType,
-      },
-    });
-
-    // Audit log for admin actions
-    if (session.kind === "admin") {
-      await tx.adminAuditLog.create({
-        data: {
-          adminUserId: session.session.adminUserId,
-          action: "REFUND_APPROVED",
-          targetType: "Refund",
-          targetId: refund.id,
-          payload: { amount: refund.amount.toString(), ticketIds, orderId: order.id },
-        },
-      });
-    }
+  const result = await processRefund({
+    refundId,
+    actor,
+    managerNote: body.managerNote?.trim() || null,
   });
 
+  if (!result.ok) {
+    switch (result.code) {
+      case "ALREADY_PROCESSED":
+        return NextResponse.json(
+          {
+            ok: false,
+            error: {
+              code: "ALREADY_PROCESSED",
+              message: "Il rimborso è già stato processato o è in lavorazione.",
+            },
+          },
+          { status: 409 }
+        );
+      case "TICKETS_CHANGED":
+        return NextResponse.json(
+          {
+            ok: false,
+            error: {
+              code: "TICKETS_CHANGED",
+              message:
+                "Alcuni ticket non sono più rimborsabili (consumati o scaduti). Verifica e decidi se rifiutare la richiesta.",
+              invalidTicketIds: result.invalidTicketIds,
+            },
+          },
+          { status: 409 }
+        );
+      case "STRIPE_ERROR":
+        return NextResponse.json(
+          {
+            ok: false,
+            error: {
+              code: "STRIPE_ERROR",
+              message: "Errore durante il rimborso Stripe. Riprova: l'operazione è sicura.",
+            },
+          },
+          { status: 502 }
+        );
+    }
+  }
+
   // Send email notification
-  const customerEmail = order.customer.email;
+  const customerEmail = refund.order.customer.email;
   if (customerEmail) {
     void sendRefundApprovedEmail({
       customerEmail,
-      customerName: order.customer.firstName ?? customerEmail,
-      venueName: order.venue.name,
+      customerName: refund.order.customer.firstName ?? customerEmail,
+      venueName: refund.order.venue.name,
       refundId: refund.id,
       amount: refund.amount.toString(),
       ticketCount: (refund.ticketIds as string[]).length,

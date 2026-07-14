@@ -23,7 +23,7 @@ export default async function RimborsoPage({
     include: {
       venue: true,
       tickets: { include: { priceTier: true } },
-      refunds: { where: { status: { in: ["PENDING", "APPROVED", "COMPLETED"] } } },
+      refunds: { where: { status: { in: ["PENDING", "PROCESSING", "FAILED", "APPROVED", "COMPLETED"] } } },
     },
   });
 
@@ -77,7 +77,7 @@ export default async function RimborsoPage({
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div className="space-y-1">
           <Link href={`/ordine/${orderId}`} className="text-sm text-zinc-500 hover:text-zinc-800">
-            ← Torna all'ordine
+            ← Torna all&apos;ordine
           </Link>
           <h1 className="text-2xl font-bold text-zinc-900">Richiedi rimborso</h1>
           <p className="text-sm text-zinc-500">{order.venue.name}</p>

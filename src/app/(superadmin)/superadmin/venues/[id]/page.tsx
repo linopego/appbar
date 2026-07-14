@@ -13,17 +13,6 @@ const ROLE_LABELS: Record<string, string> = {
   MANAGER: "Manager",
 };
 
-function formatDT(d: Date | null) {
-  if (!d) return "—";
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-}
-
 export default async function VenueDetailPage({
   params,
 }: {
