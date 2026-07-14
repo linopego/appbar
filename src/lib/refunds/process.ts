@@ -86,6 +86,8 @@ export async function processRefund(params: {
           select: {
             id: true,
             stripePaymentId: true,
+            stripeAccountId: true,
+            platformFeeAmount: true,
             venue: { select: { organizationId: true } },
           },
         },
@@ -128,14 +130,29 @@ export async function processRefund(params: {
   let stripeRefundId: string | null = null;
   if (refund.order.stripePaymentId) {
     try {
+      // Ordine Connect (direct charge): il refund va eseguito SUL connected
+      // account. Ordine legacy (stripeAccountId null): account piattaforma.
+      const connectAccountId = refund.order.stripeAccountId;
+      const hadApplicationFee = Number(refund.order.platformFeeAmount) > 0;
+
       const stripeRefund = await stripe.refunds.create(
         {
           payment_intent: refund.order.stripePaymentId,
           amount: Math.round(Number(refund.amount) * 100), // centesimi
+          // DECISIONE: quando l'ordine aveva una application fee, la piattaforma
+          // restituisce la propria quota proporzionale (refund_application_fee):
+          // così l'organizzazione rimborsata non resta in perdita sulla fee di
+          // una vendita che di fatto non è avvenuta.
+          ...(connectAccountId && hadApplicationFee
+            ? { refund_application_fee: true }
+            : {}),
         },
         // Retry e doppie esecuzioni restituiscono SEMPRE lo stesso refund:
         // mai un secondo rimborso per lo stesso record.
-        { idempotencyKey: `refund-${refund.id}` }
+        {
+          idempotencyKey: `refund-${refund.id}`,
+          ...(connectAccountId ? { stripeAccount: connectAccountId } : {}),
+        }
       );
       stripeRefundId = stripeRefund.id;
     } catch (err) {

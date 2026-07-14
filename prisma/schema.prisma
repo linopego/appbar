@@ -14,8 +14,11 @@ datasource db {
 model Organization {
   id              String   @id @default(cuid())
   name            String
-  // Account Stripe Connect collegato (null finché l'onboarding non è completato — Prompt R3)
+  // Account Stripe Connect collegato (null finché l'onboarding non è completato)
   stripeAccountId String?  @unique
+  // Flag sincronizzati dal webhook Connect account.updated
+  stripeChargesEnabled   Boolean @default(false)
+  stripeDetailsSubmitted Boolean @default(false)
   // Percentuale trattenuta dalla piattaforma sulle vendite (es. 5.00 = 5%)
   feePercent      Decimal  @default(0) @db.Decimal(5, 2)
   active          Boolean  @default(true)
@@ -145,6 +148,11 @@ model Order {
   status          OrderStatus @default(PENDING)
   stripeSessionId String      @unique
   stripePaymentId String?
+  // Connected account Stripe su cui è avvenuto l'addebito (direct charge);
+  // null = ordine legacy pre-Connect, addebitato sull'account piattaforma
+  stripeAccountId String?
+  // Snapshot della application fee trattenuta dalla piattaforma (EUR)
+  platformFeeAmount Decimal @default(0) @db.Decimal(10, 2)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   paidAt          DateTime?

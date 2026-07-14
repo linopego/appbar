@@ -47,7 +47,13 @@ function mockHappyPath() {
     id: "ref-1",
     amount: "16.00",
     ticketIds: ["t1", "t2"],
-    order: { id: "o1", stripePaymentId: "pi_123", venue: { organizationId: "org-1" } },
+    order: {
+      id: "o1",
+      stripePaymentId: "pi_123",
+      stripeAccountId: null, // ordine legacy: refund sull'account piattaforma
+      platformFeeAmount: "0",
+      venue: { organizationId: "org-1" },
+    },
   });
   tx.$queryRaw.mockResolvedValue([
     { id: "t1", status: "ACTIVE", expiresAt: FUTURE },
@@ -161,12 +167,71 @@ describe("Stripe (fase 2)", () => {
     expect(tx.ticket.updateMany).not.toHaveBeenCalled();
   });
 
+  it("ordine Connect: refund sul connected account con refund_application_fee se fee > 0", async () => {
+    tx.refund.findUniqueOrThrow.mockResolvedValue({
+      id: "ref-1",
+      amount: "16.00",
+      ticketIds: ["t1", "t2"],
+      order: {
+        id: "o1",
+        stripePaymentId: "pi_123",
+        stripeAccountId: "acct_org1",
+        platformFeeAmount: "0.80",
+        venue: { organizationId: "org-1" },
+      },
+    });
+
+    const result = await processRefund({ refundId: "ref-1", actor: ACTOR });
+
+    expect(result.ok).toBe(true);
+    const [payload, options] = stripeCreate.mock.calls[0];
+    expect(payload).toEqual({
+      payment_intent: "pi_123",
+      amount: 1600,
+      refund_application_fee: true,
+    });
+    expect(options).toEqual({
+      idempotencyKey: "refund-ref-1",
+      stripeAccount: "acct_org1",
+    });
+  });
+
+  it("ordine Connect con fee 0: niente refund_application_fee, ma stripeAccount presente", async () => {
+    tx.refund.findUniqueOrThrow.mockResolvedValue({
+      id: "ref-1",
+      amount: "16.00",
+      ticketIds: ["t1", "t2"],
+      order: {
+        id: "o1",
+        stripePaymentId: "pi_123",
+        stripeAccountId: "acct_org1",
+        platformFeeAmount: "0",
+        venue: { organizationId: "org-1" },
+      },
+    });
+
+    await processRefund({ refundId: "ref-1", actor: ACTOR });
+
+    const [payload, options] = stripeCreate.mock.calls[0];
+    expect(payload).toEqual({ payment_intent: "pi_123", amount: 1600 });
+    expect(options).toEqual({
+      idempotencyKey: "refund-ref-1",
+      stripeAccount: "acct_org1",
+    });
+  });
+
   it("ordine senza stripePaymentId: nessuna chiamata Stripe, refund APPROVED", async () => {
     tx.refund.findUniqueOrThrow.mockResolvedValue({
       id: "ref-1",
       amount: "16.00",
       ticketIds: ["t1", "t2"],
-      order: { id: "o1", stripePaymentId: null, venue: { organizationId: "org-1" } },
+      order: {
+        id: "o1",
+        stripePaymentId: null,
+        stripeAccountId: null,
+        platformFeeAmount: "0",
+        venue: { organizationId: "org-1" },
+      },
     });
 
     const result = await processRefund({ refundId: "ref-1", actor: ACTOR });
