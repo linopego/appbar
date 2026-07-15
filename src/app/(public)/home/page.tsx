@@ -4,7 +4,13 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import { expiryLabel, isExpiringSoon } from "@/lib/tickets/expiry";
-import { pickRecentVenues } from "@/lib/venues/recent";
+import {
+  lastPurchaseLabel,
+  pickRecentVenues,
+  RECENT_VENUE_ORDER_STATUSES,
+} from "@/lib/venues/recent";
+import { pressAttrs, pressBase } from "@/lib/ui/press";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { KlinkLogo } from "@/components/brand/logo";
 
@@ -31,10 +37,15 @@ export default async function CustomerHomePage() {
       },
       orderBy: { expiresAt: "asc" },
     }),
-    // "I tuoi locali": una sola query sugli ordini PAID più recenti,
-    // dedup applicativo con pickRecentVenues (niente N+1), max 4 locali
+    // "I tuoi locali": una sola query sugli ordini pagati più recenti
+    // (PAID + PARTIALLY_REFUNDED: un rimborso parziale non fa sparire il
+    // locale), dedup applicativo con pickRecentVenues (niente N+1), max 4
     db.order.findMany({
-      where: { customerId, status: "PAID", venue: { active: true } },
+      where: {
+        customerId,
+        status: { in: RECENT_VENUE_ORDER_STATUSES },
+        venue: { active: true },
+      },
       orderBy: { createdAt: "desc" },
       take: 30,
       select: {
@@ -74,29 +85,63 @@ export default async function CustomerHomePage() {
           </p>
         </div>
 
-        {/* I tuoi locali: il locale abituale a un tap, senza riscansionare
-            il QR del bancone. Max 4, dal più recente (BRAND: card touch) */}
-        {recentVenues.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              I tuoi locali
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {recentVenues.map((venue) => (
-                <Link
-                  key={venue.slug}
-                  href={`/${venue.slug}`}
-                  className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 hover:shadow-card transition-shadow"
-                >
-                  <span className="font-medium truncate">{venue.name}</span>
-                  <span className="inline-flex h-9 px-4 items-center rounded-full bg-klink-lime text-klink-ink text-xs font-semibold shrink-0">
-                    Acquista
-                  </span>
-                </Link>
-              ))}
+        {/* I tuoi locali IN CIMA: il locale abituale a un tap, senza
+            riscansionare il QR del bancone. Card grandi touch-first, tutta
+            la card è tappabile verso la pagina d'acquisto. Max 4 */}
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            I tuoi locali
+          </h2>
+          {recentVenues.length === 0 ? (
+            <div className="rounded-2xl border bg-card p-6 text-center space-y-2">
+              <div className="flex justify-center opacity-60">
+                <KlinkLogo variant="mark" size={32} />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Qui troverai i locali dove hai acquistato. Per iniziare, inquadra
+                il QR Klink al bancone del locale.
+              </p>
             </div>
-          </section>
-        )}
+          ) : (
+            <>
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
+                {recentVenues.map((venue) => (
+                  <Link
+                    key={venue.slug}
+                    href={`/${venue.slug}`}
+                    {...pressAttrs("affirmative")}
+                    className={cn(
+                      "block rounded-2xl border bg-card p-5 min-h-28 hover:shadow-card",
+                      pressBase
+                    )}
+                  >
+                    {/* Mark come decorazione discreta */}
+                    <span
+                      aria-hidden
+                      className="absolute top-4 right-4 opacity-15 pointer-events-none"
+                    >
+                      <KlinkLogo variant="mark" size={28} />
+                    </span>
+                    <span className="block pr-10 font-display text-lg font-semibold leading-snug">
+                      {venue.name}
+                    </span>
+                    <span className="block mt-1 text-xs text-muted-foreground">
+                      Ultimo acquisto: {lastPurchaseLabel(venue.lastOrderAt)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-3 text-right">
+                <Link
+                  href="/profilo"
+                  className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                >
+                  Tutti i tuoi ordini
+                </Link>
+              </div>
+            </>
+          )}
+        </section>
 
         {/* Ticket attivi */}
         {groups.length === 0 ? (

@@ -67,11 +67,12 @@ describe("/home (dashboard cliente)", () => {
     expect(ticketQuery.where.expiresAt.gt).toBeInstanceOf(Date);
     expect(ticketQuery.orderBy).toEqual({ expiresAt: "asc" });
 
-    // "I tuoi locali": solo ordini PAID del cliente, dal più recente
+    // "I tuoi locali": ordini pagati del cliente (anche con rimborso
+    // parziale), dal più recente
     const orderQuery = dbMock.order.findMany.mock.calls[0][0];
     expect(orderQuery.where).toEqual({
       customerId: "cust-1",
-      status: "PAID",
+      status: { in: ["PAID", "PARTIALLY_REFUNDED"] },
       venue: { active: true },
     });
     expect(orderQuery.orderBy).toEqual({ createdAt: "desc" });

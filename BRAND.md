@@ -3,6 +3,7 @@
 Fonte di verità per l'identità visiva di Klink. Ogni implementazione UI deve rispettare questo documento. Versione 1.1 (pre-revisione grafico professionista): i valori sono centralizzati proprio per rendere facile una futura revisione.
 
 Changelog v1.1: sfondo pagina da panna a grigio freddo (#F5F6F8) con rinomina del token in `--klink-bg`; bordo freddo (#E4E7EC); nuovo token `--klink-error-soft`; nuova sezione "Feedback di pressione".
+Changelog v1.2: feedback di pressione v2 — impulso che si completa da solo (onda ~400ms dal punto di tocco), visibile anche sui tap veloci.
 
 ---
 
@@ -103,10 +104,13 @@ Il marchio è la **scintilla Klink** (sparkle a 4 punte con fianchi concavi + sc
 
 Regola: al momento del tocco, le azioni AFFERMATIVE si illuminano di lime, quelle NEGATIVE di rosso. È l'unica eccezione codificata alla regola "niente glow": vale SOLO per lo stato pressed, mai per elementi statici.
 
-- **Azioni affermative** (bottone +, aggiungi al carrello, conferma, approva, CTA primarie): allo stato active/pressed lo sfondo si accende di lime (`--klink-lime` pieno; se l'elemento è già lime, vira su `--klink-lime-hover`), con leggera scala 0.97 e transizione ~150ms
-- **Azioni negative** (bottone −, rimuovi, annulla, rifiuta): allo stato pressed flash di `--klink-error-soft` con testo/icona che vira su `--klink-error`, stessa scala e durata
-- **Implementazione**: classi/varianti condivise nel design system (variante del Button, utility comuni) — MAI stili copiati caso per caso
-- **Accessibilità**: con `prefers-reduced-motion` niente scala, solo il cambio colore
+Principio v2: il feedback è un **impulso che si completa da solo**. Al pointerdown parte un'onda (~400ms) che si espande dal punto di tocco e sfuma, indipendente dalla durata del tocco: anche un tap velocissimo produce un feedback visibile. Feedback, non spettacolo: mai animazioni oltre ~450ms.
+
+- **Azioni affermative** (bottone +, aggiungi al carrello, conferma, approva, CTA primarie): onda `--klink-lime` (se l'elemento è già lime, onda `--klink-lime-hover`); tenuto premuto, lo sfondo resta acceso di lime con leggera scala 0.97 e transizione ~150ms
+- **Azioni negative** (bottone −, rimuovi, annulla, rifiuta): onda `--klink-error-soft` con bordo `--klink-error`; tenuto premuto, flash error-soft con testo/icona su `--klink-error`, stessa scala e durata
+- **Comportamento dell'onda**: cerchio centrato sul punto di tocco, `overflow: hidden` e border-radius dell'elemento rispettati; l'elemento resta reattivo — tap ripetuti veloci generano onde consecutive, l'animazione non blocca i click
+- **Implementazione**: centralizzata nel design system — classi host in `src/lib/ui/press.ts`, onda in `src/lib/ui/press-impulse.ts` innescata dal listener globale sugli elementi `data-press`, CSS animation pura (niente librerie). Il Button condiviso imposta `data-press` da solo in base alla variante. MAI stili copiati caso per caso
+- **Accessibilità**: con `prefers-reduced-motion` niente onda e niente scala — solo un cambio colore netto di ~200ms
 
 ## 7. Applicazione per area
 

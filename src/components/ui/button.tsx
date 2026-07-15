@@ -6,6 +6,7 @@ import {
   pressAffirmative,
   pressAffirmativeOnLime,
   pressNegative,
+  type PressKind,
 } from "@/lib/ui/press";
 
 const buttonVariants = cva(
@@ -56,6 +57,16 @@ const buttonVariants = cva(
   }
 );
 
+// Tipo di impulso alla pressione per variante (BRAND.md §6-bis): il listener
+// globale legge data-press e fa partire l'onda. Ghost e link non ne hanno.
+const PRESS_KIND: Partial<Record<NonNullable<ButtonProps["variant"]>, PressKind>> = {
+  default: "affirmative-on-lime",
+  outline: "affirmative",
+  secondary: "affirmative",
+  destructive: "negative",
+  negative: "negative",
+};
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
@@ -68,6 +79,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
+        data-press={PRESS_KIND[variant ?? "default"]}
         ref={ref}
         {...props}
       />

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
 import { Toaster } from "sonner";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { PressFeedbackListener } from "@/components/providers/press-feedback";
 import { BRAND_NAME, BRAND_TAGLINE, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="it">
       <body className={`${inter.variable} ${sora.variable} antialiased`}>
         <SessionProvider>{children}</SessionProvider>
+        <PressFeedbackListener />
         <Toaster richColors />
       </body>
     </html>
