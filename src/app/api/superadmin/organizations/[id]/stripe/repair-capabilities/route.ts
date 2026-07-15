@@ -4,8 +4,9 @@ import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe/client";
 
-// Crea (una sola volta) il connected account Stripe Express per l'organizzazione.
-// Solo admin PLATFORM: è un'operazione di onboarding della piattaforma.
+// Riparazione una tantum: gli account Express creati prima del fix non hanno
+// le capabilities card_payments/transfers richieste, quindi Stripe rifiuta le
+// direct charge. Qui le richiediamo sull'account esistente. Solo PLATFORM.
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -21,44 +22,49 @@ export async function POST(
   if (!organization) {
     return NextResponse.json({ ok: false, error: "Organizzazione non trovata" }, { status: 404 });
   }
-
-  // Idempotente: se l'account esiste già non ne creiamo un altro
-  if (organization.stripeAccountId) {
-    return NextResponse.json({
-      ok: true,
-      data: { stripeAccountId: organization.stripeAccountId, created: false },
-    });
+  if (!organization.stripeAccountId) {
+    return NextResponse.json(
+      { ok: false, error: "Nessun account Stripe da riparare: crealo prima" },
+      { status: 400 }
+    );
   }
 
-  const account = await stripe.accounts.create({
-    type: "express",
-    country: "IT",
-    // Senza queste capabilities Stripe rifiuta le direct charge sull'account
-    // ("You cannot create a charge ... without the card_payments capability")
+  const account = await stripe.accounts.update(organization.stripeAccountId, {
     capabilities: {
       card_payments: { requested: true },
       transfers: { requested: true },
     },
-    metadata: { organizationId: organization.id },
-    business_profile: { name: organization.name },
   });
 
+  // Riallinea subito i flag locali allo stato reale (senza aspettare il
+  // webhook account.updated, che resta la fonte di verità continuativa)
   await db.organization.update({
     where: { id: organization.id },
-    data: { stripeAccountId: account.id },
+    data: {
+      stripeChargesEnabled: account.charges_enabled === true,
+      stripeDetailsSubmitted: account.details_submitted === true,
+    },
   });
+
+  const capabilities = {
+    cardPayments: account.capabilities?.card_payments ?? null,
+    transfers: account.capabilities?.transfers ?? null,
+  };
 
   await logAdminAction({
     adminUserId: session.adminUserId,
     organizationId: organization.id,
-    action: "ORG_STRIPE_ACCOUNT_CREATED",
+    action: "ORG_STRIPE_CAPABILITIES_REPAIRED",
     targetType: "Organization",
     targetId: organization.id,
-    payload: { stripeAccountId: account.id },
+    payload: { stripeAccountId: organization.stripeAccountId, capabilities },
   });
 
-  return NextResponse.json(
-    { ok: true, data: { stripeAccountId: account.id, created: true } },
-    { status: 201 }
-  );
+  return NextResponse.json({
+    ok: true,
+    data: {
+      capabilities,
+      chargesEnabled: account.charges_enabled === true,
+    },
+  });
 }

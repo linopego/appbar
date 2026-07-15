@@ -149,3 +149,81 @@
     }
   }
 }
+
+/* Feedback di pressione v2 (BRAND.md §6-bis): al pointerdown parte un impulso
+   che SI COMPLETA SEMPRE (~400ms), visibile anche su tap velocissimi.
+   L'onda viene creata da src/lib/ui/press-impulse.ts sugli elementi [data-press];
+   qui vivono solo geometria host, onda e keyframes. */
+@layer utilities {
+  .klink-press-host {
+    position: relative;
+    overflow: hidden;
+  }
+}
+
+.klink-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform: scale(0);
+  animation: klink-ripple 400ms ease-out forwards;
+}
+.klink-ripple[data-kind="affirmative"] {
+  background-color: var(--color-klink-lime);
+}
+.klink-ripple[data-kind="affirmative-on-lime"] {
+  background-color: var(--color-klink-lime-hover);
+}
+.klink-ripple[data-kind="negative"] {
+  background-color: var(--color-klink-error-soft);
+  border: 2px solid var(--color-klink-error);
+}
+
+@keyframes klink-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* prefers-reduced-motion: niente onda, solo cambio colore netto (~200ms).
+   Colore costante per tutta l'animazione, ritorno secco alla fine. */
+.klink-press-flash-affirmative {
+  animation: klink-flash-affirmative 200ms linear;
+}
+.klink-press-flash-affirmative-on-lime {
+  animation: klink-flash-affirmative-on-lime 200ms linear;
+}
+.klink-press-flash-negative {
+  animation: klink-flash-negative 200ms linear;
+}
+@keyframes klink-flash-affirmative {
+  from,
+  to {
+    background-color: var(--color-klink-lime);
+    color: var(--color-klink-ink);
+  }
+}
+@keyframes klink-flash-affirmative-on-lime {
+  from,
+  to {
+    background-color: var(--color-klink-lime-hover);
+  }
+}
+@keyframes klink-flash-negative {
+  from,
+  to {
+    background-color: var(--color-klink-error-soft);
+    color: var(--color-klink-error);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .klink-ripple {
+    display: none;
+  }
+}
