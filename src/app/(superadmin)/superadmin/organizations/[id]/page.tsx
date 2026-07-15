@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
+import { stripe } from "@/lib/stripe/client";
 import { formatEur } from "@/lib/utils/money";
 import { getOrgStats } from "@/lib/organizations/stats";
 import { StripeStatusBadge } from "../stripe-status-badge";
@@ -36,6 +37,44 @@ export default async function OrganizationDetailPage({
     },
   });
   if (!organization) notFound();
+
+  // Stato reale da Stripe (capabilities, charges_enabled): il DB riflette
+  // l'ultimo webhook account.updated, qui verifichiamo alla fonte.
+  let liveStripe: {
+    cardPayments: string | null;
+    transfers: string | null;
+    chargesEnabled: boolean;
+    detailsSubmitted: boolean;
+  } | null = null;
+  if (organization.stripeAccountId) {
+    try {
+      const account = await stripe.accounts.retrieve(organization.stripeAccountId);
+      liveStripe = {
+        cardPayments: account.capabilities?.card_payments ?? null,
+        transfers: account.capabilities?.transfers ?? null,
+        chargesEnabled: account.charges_enabled === true,
+        detailsSubmitted: account.details_submitted === true,
+      };
+      // Riallinea i flag locali se un webhook è andato perso: il badge e il
+      // gate del checkout devono riflettere il charges_enabled reale
+      if (
+        liveStripe.chargesEnabled !== organization.stripeChargesEnabled ||
+        liveStripe.detailsSubmitted !== organization.stripeDetailsSubmitted
+      ) {
+        await db.organization.update({
+          where: { id: organization.id },
+          data: {
+            stripeChargesEnabled: liveStripe.chargesEnabled,
+            stripeDetailsSubmitted: liveStripe.detailsSubmitted,
+          },
+        });
+      }
+    } catch {
+      liveStripe = null; // Stripe non raggiungibile: si mostra lo stato locale
+    }
+  }
+  const chargesEnabled = liveStripe?.chargesEnabled ?? organization.stripeChargesEnabled;
+  const detailsSubmitted = liveStripe?.detailsSubmitted ?? organization.stripeDetailsSubmitted;
 
   const now = new Date();
   const [kpi7, kpi30, kpi90] = await Promise.all([
@@ -91,14 +130,20 @@ export default async function OrganizationDetailPage({
             </h2>
             <StripeStatusBadge
               hasAccount={organization.stripeAccountId !== null}
-              chargesEnabled={organization.stripeChargesEnabled}
+              chargesEnabled={chargesEnabled}
             />
           </div>
           <OrganizationStripeSection
             organizationId={organization.id}
             hasAccount={organization.stripeAccountId !== null}
-            chargesEnabled={organization.stripeChargesEnabled}
-            detailsSubmitted={organization.stripeDetailsSubmitted}
+            chargesEnabled={chargesEnabled}
+            detailsSubmitted={detailsSubmitted}
+            capabilities={
+              liveStripe && {
+                cardPayments: liveStripe.cardPayments,
+                transfers: liveStripe.transfers,
+              }
+            }
           />
         </section>
 
@@ -131,7 +176,7 @@ export default async function OrganizationDetailPage({
               + Nuovo venue
             </Link>
           </div>
-          {!organization.stripeChargesEnabled && organization.venues.length > 0 && (
+          {!chargesEnabled && organization.venues.length > 0 && (
             <p className="text-xs text-yellow-400/90 bg-yellow-900/20 border border-yellow-900/40 rounded-lg px-3 py-2">
               ⚠️ Pagamenti non attivi: i clienti non possono ancora acquistare nei venue di
               questa organizzazione. Completa prima l&apos;onboarding Stripe.
