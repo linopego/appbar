@@ -89,7 +89,7 @@ export default async function OrderPage({ params }: PageProps) {
               Il tuo pagamento non è andato a buon fine. Nessun importo è stato addebitato.
             </p>
             <Button asChild className="w-full">
-              <Link href={`/${order.venue.slug}/acquista`}>Acquista di nuovo</Link>
+              <Link href={`/${order.venue.slug}`}>Acquista di nuovo</Link>
             </Button>
           </CardContent>
         </Card>
