@@ -174,7 +174,7 @@ export default async function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-10 sm:gap-16">
               {/* Telefono stilizzato con card ticket */}
               <Reveal delay={100}>
-                <div className="w-56 rounded-[2.2rem] border-[6px] border-klink-ink bg-klink-cream p-3 shadow-card">
+                <div className="w-56 rounded-[2.2rem] border-[6px] border-klink-ink bg-klink-bg p-3 shadow-card">
                   <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-klink-ink/20" />
                   <div className="rounded-2xl bg-white border p-4">
                     <FakeQr className="w-full text-klink-ink" />

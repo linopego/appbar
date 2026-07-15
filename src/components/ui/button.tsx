@@ -2,22 +2,44 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import {
+  pressAffirmative,
+  pressAffirmativeOnLime,
+  pressNegative,
+} from "@/lib/ui/press";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        // Primario Klink: pill lime con testo Ink (mai bianco su lime)
-        default:
+        // Primario Klink: pill lime con testo Ink (mai bianco su lime).
+        // Pressione affermativa: vira sul lime-hover (BRAND.md §6-bis)
+        default: cn(
           "rounded-full bg-klink-lime font-semibold text-klink-ink hover:bg-klink-lime-hover",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        // Secondario Klink: bordo Ink, testo Ink, sfondo trasparente
-        outline:
+          pressAffirmativeOnLime
+        ),
+        destructive: cn(
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          pressNegative
+        ),
+        // Secondario Klink: bordo Ink, testo Ink, sfondo trasparente.
+        // Pressione affermativa: si accende di lime pieno
+        outline: cn(
           "rounded-full border border-klink-ink bg-transparent text-klink-ink hover:bg-klink-ink/5",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-foreground underline-offset-4 hover:underline",
+          pressAffirmative
+        ),
+        // Azione negativa esplicita (annulla, rimuovi, rifiuta): flash error-soft
+        negative: cn(
+          "rounded-full border border-input bg-transparent text-foreground hover:bg-muted",
+          pressNegative
+        ),
+        secondary: cn(
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+          pressAffirmative
+        ),
+        ghost: "transition-colors hover:bg-accent hover:text-accent-foreground",
+        link: "transition-colors text-foreground underline-offset-4 hover:underline",
       },
       size: {
         // Touch target ≥44px per i bottoni primari (BRAND.md)

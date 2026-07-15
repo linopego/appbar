@@ -18,7 +18,7 @@ interface Props {
 const STATUS_BG: Record<EffectiveTicketStatus, string> = {
   ACTIVE: "bg-klink-white",
   EXPIRED: "bg-klink-warning/10",
-  CONSUMED: "bg-klink-cream",
+  CONSUMED: "bg-klink-bg",
   REFUNDED: "bg-klink-error/10",
 };
 

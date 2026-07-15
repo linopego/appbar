@@ -27,23 +27,25 @@ export function PriceTierCard({
         <CardTitle className="text-base font-medium">{name}</CardTitle>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-4 pt-0">
-        <span className="text-lg font-semibold">{formatEur(price)}</span>
+        <span className="text-lg font-semibold tabular-nums">{formatEur(price)}</span>
+        {/* Stepper con feedback di pressione (BRAND.md §6-bis):
+            + affermativo (lime), − negativo (error-soft) */}
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="negative"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 p-0 text-xl"
             onClick={onDecrement}
             disabled={quantity === 0}
             aria-label={`Rimuovi ${name}`}
           >
             −
           </Button>
-          <span className="w-6 text-center tabular-nums">{quantity}</span>
+          <span className="w-7 text-center text-lg tabular-nums">{quantity}</span>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 p-0 text-xl"
             onClick={onIncrement}
             aria-label={`Aggiungi ${name}`}
           >

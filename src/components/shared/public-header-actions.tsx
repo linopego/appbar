@@ -35,12 +35,20 @@ export function PublicHeaderActions({ user }: { user: HeaderUser | null }) {
 
   if (!user) {
     return (
-      <Link
-        href={`/login?callbackUrl=${encodeURIComponent(pathname || "/")}`}
-        className="h-10 px-5 inline-flex items-center rounded-full bg-klink-lime text-klink-ink text-sm font-semibold hover:bg-klink-lime-hover transition-colors"
-      >
-        Accedi
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/accesso-staff"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Area staff
+        </Link>
+        <Link
+          href={`/login?callbackUrl=${encodeURIComponent(pathname || "/")}`}
+          className="h-10 px-5 inline-flex items-center rounded-full bg-klink-lime text-klink-ink text-sm font-semibold hover:bg-klink-lime-hover transition-colors"
+        >
+          Accedi
+        </Link>
+      </div>
     );
   }
 

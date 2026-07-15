@@ -15,9 +15,9 @@ export const EMAIL_COLORS = {
   ink: "#0F1230",
   inkSoft: "#4A4E6B",
   inkMuted: "#8A8FA8",
-  cream: "#F4F2EA",
+  bg: "#F5F6F8",
   white: "#FFFFFF",
-  border: "#E8E4DA",
+  border: "#E4E7EC",
   error: "#E2472B",
   warning: "#F0A500",
 } as const;
@@ -48,12 +48,12 @@ export function emailCta(href: string, label: string): string {
 // Riquadro informativo neutro (righe chiave/valore, note)
 export function emailPanel(innerHtml: string): string {
   return `
-    <div style="background: ${EMAIL_COLORS.cream}; border-radius: 12px; padding: 16px 20px; margin: 0 0 24px;">
+    <div style="background: ${EMAIL_COLORS.bg}; border-radius: 12px; padding: 16px 20px; margin: 0 0 24px;">
       ${innerHtml}
     </div>`;
 }
 
-// Layout: fondo cream, header Ink con wordmark bianco, card bianca radius 16.
+// Layout: fondo bg grigio freddo, header Ink con wordmark bianco, card bianca radius 16.
 // Il wordmark è testuale (i client email spesso bloccano SVG/immagini inline):
 // `klink` minuscolo bold, come da BRAND.md.
 export function emailLayout(opts: { title: string; bodyHtml: string }): string {
@@ -65,7 +65,7 @@ export function emailLayout(opts: { title: string; bodyHtml: string }): string {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(opts.title)}</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: ${BODY_FONT}; background: ${EMAIL_COLORS.cream};">
+<body style="margin: 0; padding: 0; font-family: ${BODY_FONT}; background: ${EMAIL_COLORS.bg};">
   <div style="max-width: 560px; margin: 32px auto; padding: 0 16px;">
     <div style="background: ${EMAIL_COLORS.ink}; border-radius: 16px 16px 0 0; padding: 20px 32px;">
       <span style="font-family: ${FONT}; font-weight: 700; font-size: 22px; color: ${EMAIL_COLORS.white}; letter-spacing: -0.02em;">${BRAND_NAME.toLowerCase()}</span>

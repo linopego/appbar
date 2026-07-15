@@ -1,5 +1,7 @@
 "use client";
 
+import { pressAffirmativeOnLime, pressNegative } from "@/lib/ui/press";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -148,13 +150,13 @@ export function RefundActionForm({ refundId, amount, ticketCount }: Props) {
       <div className="flex gap-3">
         <button
           onClick={handleApprove}
-          className="flex-1 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-semibold transition-colors"
+          className={`flex-1 py-3 rounded-xl bg-klink-lime hover:bg-klink-lime-hover text-klink-ink font-semibold ${pressAffirmativeOnLime}`}
         >
           ✓ Approva e rimborsa
         </button>
         <button
           onClick={handleReject}
-          className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-colors"
+          className={`flex-1 py-3 rounded-xl border border-klink-error text-klink-error font-semibold hover:bg-klink-error-soft ${pressNegative}`}
         >
           ✕ Rifiuta
         </button>

@@ -29,11 +29,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <CardContent>
           <LoginForm mode="login" callbackUrl={callbackUrl} />
         </CardContent>
-        <CardFooter className="justify-center text-sm text-muted-foreground">
-          Non hai un account?
-          <Link href="/registrati" className="ml-1 font-medium text-foreground hover:underline">
-            Registrati
-          </Link>
+        <CardFooter className="flex-col gap-4 text-sm text-muted-foreground">
+          <p>
+            Non hai un account?
+            <Link href="/registrati" className="ml-1 font-medium text-foreground hover:underline">
+              Registrati
+            </Link>
+          </p>
+          <div className="w-full border-t pt-4 text-center">
+            <p className="text-xs">
+              Lavori in un locale?{" "}
+              <Link
+                href="/accesso-staff"
+                className="font-medium text-foreground hover:underline"
+              >
+                Vai all&apos;area staff
+              </Link>
+            </p>
+          </div>
         </CardFooter>
       </Card>
     </main>
