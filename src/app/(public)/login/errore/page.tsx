@@ -9,6 +9,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   Configuration: "Errore di configurazione del sistema. Contatta il supporto.",
   AccessDenied: "Accesso negato.",
   Verification: "Il link di verifica non è valido o è scaduto.",
+  EmailMismatch:
+    "Questo accesso appartiene a un'email diversa da quella del tuo account. Esci e riprova.",
 };
 
 interface ErrorPageProps {
