@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import {
   Card,
   CardContent,
@@ -14,6 +16,11 @@ interface LoginPageProps {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  // Da loggati non si rifà il login (rifarlo con un provider diverso
+  // aggancerebbe l'account al cliente in sessione). Per cambiare account: Esci.
+  const session = await auth();
+  if (session?.user) redirect("/home");
+
   const params = await searchParams;
   const callbackUrl = params?.callbackUrl ?? "/profilo";
 
