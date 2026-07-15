@@ -124,3 +124,27 @@
     font-family: var(--font-display);
   }
 }
+
+/* Reveal on scroll (IntersectionObserver aggiunge .is-visible).
+   Con prefers-reduced-motion tutto è visibile da subito, senza transizioni. */
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.6s ease,
+      transform 0.6s ease;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .reveal.is-visible {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+}
