@@ -7,6 +7,7 @@ const { mockAuth, dbMock } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   dbMock: {
     ticket: { findMany: vi.fn().mockResolvedValue([]) },
+    order: { findMany: vi.fn().mockResolvedValue([]) },
     venue: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }));
@@ -28,6 +29,7 @@ import CustomerHomePage from "@/app/(public)/home/page";
 beforeEach(() => {
   vi.clearAllMocks();
   dbMock.ticket.findMany.mockResolvedValue([]);
+  dbMock.order.findMany.mockResolvedValue([]);
   dbMock.venue.findMany.mockResolvedValue([]);
 });
 
@@ -64,5 +66,14 @@ describe("/home (dashboard cliente)", () => {
     expect(ticketQuery.where.status).toBe("ACTIVE");
     expect(ticketQuery.where.expiresAt.gt).toBeInstanceOf(Date);
     expect(ticketQuery.orderBy).toEqual({ expiresAt: "asc" });
+
+    // "I tuoi locali": solo ordini PAID del cliente, dal più recente
+    const orderQuery = dbMock.order.findMany.mock.calls[0][0];
+    expect(orderQuery.where).toEqual({
+      customerId: "cust-1",
+      status: "PAID",
+      venue: { active: true },
+    });
+    expect(orderQuery.orderBy).toEqual({ createdAt: "desc" });
   });
 });

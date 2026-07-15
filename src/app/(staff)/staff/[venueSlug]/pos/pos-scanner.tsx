@@ -8,6 +8,7 @@ import { messageForCode } from "@/lib/pos/messages";
 import { playSound, vibrate } from "@/lib/pos/feedback";
 import { formatEur } from "@/lib/utils/money";
 import { KlinkLogo } from "@/components/brand/logo";
+import { pressAffirmativeOnLime, pressNegative } from "@/lib/ui/press";
 import type { OperatorRole } from "@/lib/auth/staff";
 
 const SCANNER_ELEMENT_ID = "qr-reader";
@@ -276,7 +277,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
                 setCameraError(null);
                 setScannerOn(true);
               }}
-              className="w-full min-h-16 py-5 bg-klink-lime hover:bg-klink-lime-hover rounded-2xl text-2xl font-bold text-klink-ink transition-colors"
+              className={`w-full min-h-16 py-5 bg-klink-lime hover:bg-klink-lime-hover rounded-2xl text-2xl font-bold text-klink-ink ${pressAffirmativeOnLime}`}
             >
               {cameraError ? "Riprova" : "Scansiona ticket"}
             </button>
@@ -290,7 +291,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
             />
             <button
               onClick={() => setScannerOn(false)}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 min-h-12 rounded-full border border-zinc-600 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800 transition-colors"
+              className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-40 px-6 min-h-12 rounded-full border border-zinc-600 bg-zinc-900/80 text-lg text-zinc-200 hover:bg-zinc-800 ${pressNegative}`}
             >
               Ferma scanner
             </button>
@@ -349,13 +350,13 @@ function OverlayContent({
           </div>
           <button
             onClick={onConsume}
-            className="w-full py-5 bg-klink-lime hover:bg-klink-lime-hover active:bg-klink-lime-hover rounded-2xl text-2xl font-bold text-klink-ink transition-colors"
+            className={`w-full py-5 bg-klink-lime hover:bg-klink-lime-hover rounded-2xl text-2xl font-bold text-klink-ink ${pressAffirmativeOnLime}`}
           >
             ✓ Consegnato
           </button>
           <button
             onClick={onDismiss}
-            className="w-full py-3 text-sm text-zinc-400 hover:text-zinc-200"
+            className={`w-full py-3 rounded-2xl text-sm text-zinc-400 hover:text-zinc-200 ${pressNegative}`}
           >
             Annulla
           </button>

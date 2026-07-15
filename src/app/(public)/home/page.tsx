@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import { expiryLabel, isExpiringSoon } from "@/lib/tickets/expiry";
+import { pickRecentVenues } from "@/lib/venues/recent";
 import { Button } from "@/components/ui/button";
 import { KlinkLogo } from "@/components/brand/logo";
 
@@ -21,7 +22,7 @@ export default async function CustomerHomePage() {
   const customerId = session.user.id;
   const now = new Date();
 
-  const [activeTickets, purchasedVenues] = await Promise.all([
+  const [activeTickets, recentPaidOrders] = await Promise.all([
     db.ticket.findMany({
       where: { customerId, status: "ACTIVE", expiresAt: { gt: now } },
       include: {
@@ -30,15 +31,20 @@ export default async function CustomerHomePage() {
       },
       orderBy: { expiresAt: "asc" },
     }),
-    db.venue.findMany({
-      where: {
-        active: true,
-        orders: { some: { customerId, status: { in: ["PAID", "PARTIALLY_REFUNDED"] } } },
+    // "I tuoi locali": una sola query sugli ordini PAID più recenti,
+    // dedup applicativo con pickRecentVenues (niente N+1), max 4 locali
+    db.order.findMany({
+      where: { customerId, status: "PAID", venue: { active: true } },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: {
+        createdAt: true,
+        venue: { select: { name: true, slug: true } },
       },
-      select: { name: true, slug: true },
-      orderBy: { name: "asc" },
     }),
   ]);
+
+  const recentVenues = pickRecentVenues(recentPaidOrders);
 
   // Raggruppa per locale mantenendo l'ordine per scadenza più vicina
   const byVenue = new Map<
@@ -67,6 +73,30 @@ export default async function CustomerHomePage() {
             Mostra il QR al banco: una scansione, una consumazione.
           </p>
         </div>
+
+        {/* I tuoi locali: il locale abituale a un tap, senza riscansionare
+            il QR del bancone. Max 4, dal più recente (BRAND: card touch) */}
+        {recentVenues.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              I tuoi locali
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {recentVenues.map((venue) => (
+                <Link
+                  key={venue.slug}
+                  href={`/${venue.slug}`}
+                  className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 hover:shadow-card transition-shadow"
+                >
+                  <span className="font-medium truncate">{venue.name}</span>
+                  <span className="inline-flex h-9 px-4 items-center rounded-full bg-klink-lime text-klink-ink text-xs font-semibold shrink-0">
+                    Acquista
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Ticket attivi */}
         {groups.length === 0 ? (
@@ -131,27 +161,6 @@ export default async function CustomerHomePage() {
               </section>
             ))}
           </div>
-        )}
-
-        {/* Compra ancora */}
-        {purchasedVenues.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              Compra ancora
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {purchasedVenues.map((venue) => (
-                <Link
-                  key={venue.slug}
-                  href={`/${venue.slug}`}
-                  className="flex items-center justify-between rounded-2xl border bg-card p-4 hover:shadow-card transition-shadow"
-                >
-                  <span className="font-medium truncate">{venue.name}</span>
-                  <span className="text-klink-ink-muted" aria-hidden>→</span>
-                </Link>
-              ))}
-            </div>
-          </section>
         )}
 
         {/* Storico */}

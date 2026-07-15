@@ -4,7 +4,7 @@
   :root {
     /* Palette Klink (BRAND.md): cream di pagina, card bianche, Ink come
        testo, lime come primario (con testo SEMPRE Ink: mai bianco su lime) */
-    --background: 48 31% 94%; /* klink-cream */
+    --background: 220 18% 97%; /* klink-bg (grigio freddo) */
     --foreground: 235 52% 12%; /* klink-ink */
     --card: 0 0% 100%;
     --card-foreground: 235 52% 12%;
@@ -12,16 +12,16 @@
     --popover-foreground: 235 52% 12%;
     --primary: 76 100% 59%; /* klink-lime */
     --primary-foreground: 235 52% 12%; /* Ink su lime */
-    --secondary: 48 31% 94%;
+    --secondary: 220 18% 97%;
     --secondary-foreground: 235 52% 12%;
-    --muted: 48 31% 94%;
+    --muted: 220 18% 97%;
     --muted-foreground: 233 18% 35%; /* klink-ink-soft */
     --accent: 74 100% 91%; /* klink-lime-soft */
     --accent-foreground: 235 52% 12%;
     --destructive: 9 76% 53%; /* klink-error */
     --destructive-foreground: 0 0% 100%;
-    --border: 43 23% 88%; /* klink-border */
-    --input: 43 23% 88%;
+    --border: 218 17% 91%; /* klink-border (freddo) */
+    --input: 218 17% 91%;
     --ring: 235 52% 12%;
     --radius: 1rem; /* card 16px */
     --chart-1: 12 76% 61%;
@@ -68,11 +68,12 @@
   --color-klink-ink: #0F1230;
   --color-klink-ink-soft: #4A4E6B;
   --color-klink-ink-muted: #8A8FA8;
-  --color-klink-cream: #F4F2EA;
+  --color-klink-bg: #F5F6F8;
   --color-klink-white: #FFFFFF;
-  --color-klink-border: #E8E4DA;
+  --color-klink-border: #E4E7EC;
   --color-klink-success: #C8FF2E;
   --color-klink-error: #E2472B;
+  --color-klink-error-soft: #FCE8E3;
   --color-klink-warning: #F0A500;
   --color-klink-info: #2563EB;
   --radius-card: 16px;
