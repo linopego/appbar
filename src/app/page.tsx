@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { Banknote, Smartphone, Zap } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PublicHeader } from "@/components/shared/public-header";
 import { Reveal } from "@/components/shared/reveal";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/brand";
 import { auth } from "@/lib/auth";
+import { renderUrlQrSvg } from "@/lib/qr/render";
 
 export const dynamic = "force-dynamic";
 
@@ -27,55 +29,21 @@ function Sparkle({ size = 24, className }: { size?: number; className?: string }
   );
 }
 
-// Pattern "QR" stilizzato e deterministico (nessuna foto, solo SVG di brand)
-function FakeQr({ className }: { className?: string }) {
-  const cells = [
-    [0, 0], [1, 0], [2, 0], [4, 0], [6, 0], [0, 1], [2, 1], [6, 1], [0, 2], [1, 2],
-    [2, 2], [4, 2], [5, 2], [0, 3], [3, 3], [5, 3], [6, 3], [1, 4], [2, 4], [4, 4],
-    [6, 4], [0, 5], [3, 5], [4, 5], [0, 6], [1, 6], [2, 6], [4, 6], [5, 6], [6, 6],
-  ] as const;
-  return (
-    <svg viewBox="0 0 70 70" aria-hidden className={className}>
-      {cells.map(([x, y]) => (
-        <rect key={`${x}-${y}`} x={x * 10 + 1} y={y * 10 + 1} width={8} height={8} rx={1.5} fill="currentColor" />
-      ))}
-    </svg>
-  );
-}
-
 const BENEFITS = [
   {
     title: "Incassi anticipati e certi",
     text: "I clienti pagano online prima di arrivare al banco. Tu incassi subito, anche se la consumazione arriva un altro giorno.",
-    icon: (
-      <svg viewBox="0 0 40 40" aria-hidden className="h-9 w-9 text-klink-ink">
-        <circle cx="17" cy="21" r="11" fill="none" stroke="currentColor" strokeWidth="2.5" />
-        <path d="M13 21h8M13 17.5h9M17 13.5c-3 0-5 1.8-5 4.5v6c0 1.5 1.5 3 3.5 3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M31 6 Q31.8 10.2 36 11 Q31.8 11.8 31 16 Q30.2 11.8 26 11 Q30.2 10.2 31 6 Z" fill="currentColor" />
-      </svg>
-    ),
+    Icon: Banknote,
   },
   {
     title: "Code più veloci al banco",
     text: "Niente pagamenti alla cassa: il barista scansiona il QR e serve. Ogni scansione vale una consumazione, senza discussioni.",
-    icon: (
-      <svg viewBox="0 0 40 40" aria-hidden className="h-9 w-9 text-klink-ink">
-        <path d="M22 4 10 22h8l-3 14L29 17h-8l4-13z" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
-        <path d="M33 27 Q33.6 30 36.5 30.5 Q33.6 31 33 34 Q32.4 31 29.5 30.5 Q32.4 30 33 27 Z" fill="currentColor" />
-      </svg>
-    ),
+    Icon: Zap,
   },
   {
     title: "Niente contanti né resti",
     text: "Zero cassa da quadrare, zero errori di resto, zero carte al banco. Tutto tracciato, rimborsi gestiti dal pannello.",
-    icon: (
-      <svg viewBox="0 0 40 40" aria-hidden className="h-9 w-9 text-klink-ink">
-        <rect x="5" y="11" width="26" height="18" rx="4" fill="none" stroke="currentColor" strokeWidth="2.5" />
-        <path d="M5 17h26" stroke="currentColor" strokeWidth="2.5" />
-        <path d="M10 24h7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M34 5 Q34.6 8 37.5 8.5 Q34.6 9 34 12 Q33.4 9 30.5 8.5 Q33.4 8 34 5 Z" fill="currentColor" />
-      </svg>
-    ),
+    Icon: Smartphone,
   },
 ];
 
@@ -103,6 +71,12 @@ export default async function HomePage() {
   if (session?.user) {
     redirect("/home");
   }
+
+  // QR VERO nel mockup (codifica l'URL del sito): moduli neri su pannello
+  // bianco, quiet zone rispettata — niente griglie finte
+  const appUrl =
+    process.env["NEXT_PUBLIC_APP_URL"] ?? process.env["NEXTAUTH_URL"] ?? "http://localhost:3000";
+  const mockupQrSvg = await renderUrlQrSvg(appUrl);
 
   return (
     <>
@@ -147,7 +121,9 @@ export default async function HomePage() {
               {BENEFITS.map((benefit, i) => (
                 <Reveal key={benefit.title} delay={i * 100}>
                   <div className="h-full rounded-2xl border bg-card p-6 shadow-card">
-                    {benefit.icon}
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-klink-lime-soft">
+                      <benefit.Icon aria-hidden className="h-6 w-6 text-klink-ink" strokeWidth={1.8} />
+                    </span>
                     <h2 className="text-lg font-semibold mt-4">{benefit.title}</h2>
                     <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                       {benefit.text}
@@ -176,7 +152,13 @@ export default async function HomePage() {
                 <div className="w-56 rounded-[2.2rem] border-[6px] border-klink-ink bg-klink-bg p-3 shadow-card">
                   <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-klink-ink/20" />
                   <div className="rounded-2xl bg-white border p-4">
-                    <FakeQr className="w-full text-klink-ink" />
+                    <div
+                      className="w-full"
+                      aria-hidden
+                      dangerouslySetInnerHTML={{
+                        __html: mockupQrSvg.replace("<svg ", '<svg width="100%" height="100%" '),
+                      }}
+                    />
                     <p className="font-display font-semibold text-center mt-3">Drink</p>
                     <p className="text-xs text-muted-foreground text-center tabular-nums">
                       10,00&nbsp;€ · valido 30 giorni

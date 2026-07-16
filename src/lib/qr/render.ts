@@ -31,3 +31,13 @@ export async function renderQrSvg(qrToken: string): Promise<string> {
     margin: 2,
   });
 }
+
+// QR generico di un URL (es. mockup della homepage): QR VERO e scansionabile,
+// stessi parametri dei QR dei ticket (error correction M, quiet zone).
+export async function renderUrlQrSvg(url: string): Promise<string> {
+  return QRCode.toString(url, {
+    type: "svg",
+    errorCorrectionLevel: "M",
+    margin: 2,
+  });
+}

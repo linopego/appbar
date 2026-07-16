@@ -5,6 +5,7 @@ Fonte di verità per l'identità visiva di Klink. Ogni implementazione UI deve r
 Changelog v1.1: sfondo pagina da panna a grigio freddo (#F5F6F8) con rinomina del token in `--klink-bg`; bordo freddo (#E4E7EC); nuovo token `--klink-error-soft`; nuova sezione "Feedback di pressione".
 Changelog v1.2: feedback di pressione v2 — impulso che si completa da solo (onda ~400ms dal punto di tocco), visibile anche sui tap veloci.
 Changelog v1.3: mai emoji in interfaccia ed email; il mark mai come decorazione riempitiva; il lime identifica ciò che è valido/attivo (ticket ATTIVI su lime, avvisi su lime come badge Ink/bianco, QR sempre su pannello bianco).
+Changelog v1.4: icone dell'interfaccia esclusivamente da lucide-react (mai ad hoc, mai compositing col mark); card ticket senza watermark.
 
 ---
 
@@ -102,8 +103,9 @@ Il marchio è la **scintilla Klink** (sparkle a 4 punte con fianchi concavi + sc
 - **Bottone primario**: sfondo lime, testo Ink 600, pill, altezza ≥44px (touch)
 - **Bottone secondario**: bordo Ink 1px, testo Ink, sfondo trasparente
 - **Badge stato ticket**: Attivo = lime-soft con testo Ink; Consumato = grigio neutro; Scaduto = warning-soft; Rimborsato = neutro con bordo
-- **Card ticket (cliente)**: bianca, radius 16, QR grande centrato, nome fascia in Sora 600, scintilla mark come watermark discreto nell'angolo
+- **Card ticket (cliente)**: bianca, radius 16, QR grande centrato, nome fascia in Sora 600 — niente watermark o decorazioni sul pannello del QR (v1.3: il mark non è decorazione riempitiva)
 - **Feedback POS**: overlay esito a schermo pieno — VALIDO = fondo lime, icona/testo Ink, "Consegnato ✓"; NON VALIDO = fondo error, testo bianco. Durata 2s come da flusso esistente
+- **Icone**: le icone dell'interfaccia provengono esclusivamente da lucide-react — mai icone disegnate ad hoc, mai compositing col mark. Trattamento standard: Ink su chip lime-soft con radius del design system. (Eccezioni: loghi di terzi come Google/wallet e la scintilla come motivo decorativo di brand, che non è un'icona)
 
 ## 6-bis. Feedback di pressione
 
