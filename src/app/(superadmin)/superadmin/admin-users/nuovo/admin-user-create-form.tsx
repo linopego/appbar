@@ -186,8 +186,8 @@ export function AdminUserCreateForm({
                 onChange={(e) => setRole(e.target.value as "PLATFORM" | "ORG_ADMIN")}
                 className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
               >
-                <option value="ORG_ADMIN">Admin organizzazione</option>
-                <option value="PLATFORM">Admin piattaforma (vede tutto)</option>
+                <option value="ORG_ADMIN">Amministratore organizzazione</option>
+                <option value="PLATFORM">Amministratore piattaforma (vede tutto)</option>
               </select>
             </div>
 

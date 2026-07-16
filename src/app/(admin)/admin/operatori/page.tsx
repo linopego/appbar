@@ -4,15 +4,12 @@ import { requireStaffRole } from "@/lib/auth/staff";
 import { db } from "@/lib/db";
 import { OperatorToggleButton } from "./operator-toggle-button";
 import { OperatorResetPasswordButton } from "@/components/shared/operator-reset-password-button";
+import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operatori — Admin" };
 
-const ROLE_LABELS: Record<string, string> = {
-  BARISTA: "Barista",
-  CASSIERE: "Cassiere",
-  MANAGER: "Manager",
-};
+const ROLE_LABELS = OPERATOR_ROLE_LABELS;
 
 function formatDT(d: Date | null) {
   if (!d) return "—";

@@ -21,7 +21,7 @@ export default async function ModificaOperatorePage({
 
   const op = await db.operator.findUnique({
     where: { id, venueId: session.venueId },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, email: true, role: true, passwordHash: true },
   });
 
   if (!op) notFound();
@@ -39,6 +39,23 @@ export default async function ModificaOperatorePage({
         initialEmail={op.email ?? ""}
         initialRole={op.role}
       />
+
+      {op.role === "MANAGER" && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-1">
+          <h2 className="text-sm font-semibold text-zinc-900">Accesso al pannello</h2>
+          <p className="text-sm text-zinc-700">
+            Password:{" "}
+            {op.passwordHash ? (
+              <span className="text-green-700 font-medium">impostata</span>
+            ) : (
+              <span className="text-amber-700 font-medium">mai impostata</span>
+            )}
+          </p>
+          <p className="text-xs text-zinc-500">
+            Per impostarla o rigenerarla usa «Imposta/reimposta password» nella lista operatori.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

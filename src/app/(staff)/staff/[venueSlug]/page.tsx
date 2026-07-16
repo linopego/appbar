@@ -52,7 +52,7 @@ export default async function StaffLoginPage({ params }: PageProps) {
             />
           ) : (
             <p className="text-center text-sm text-zinc-400">
-              Nessun operatore configurato per questo venue. Contatta il manager.
+              Nessun operatore configurato per questo venue. Contatta il responsabile di locale.
             </p>
           )}
         </CardContent>

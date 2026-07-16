@@ -12,12 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
 
-const ROLE_LABELS: Record<string, string> = {
-  BARISTA: "Barista",
-  CASSIERE: "Cassiere",
-  MANAGER: "Manager",
-};
+const ROLE_LABELS = OPERATOR_ROLE_LABELS;
 
 interface Operator {
   id: string;

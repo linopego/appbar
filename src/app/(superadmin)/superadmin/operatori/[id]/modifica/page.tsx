@@ -53,10 +53,18 @@ export default async function SuperAdminOperatoreModificaPage({
                 Password pannello
               </h2>
               <p className="text-xs text-zinc-500 mt-1">
-                I manager accedono al pannello del locale con email e password
+                I responsabili di locale accedono al pannello con email e password
                 (oltre al PIN per il banco).
               </p>
             </div>
+            <p className="text-sm">
+              <span className="text-zinc-400">Password: </span>
+              {operator.passwordHash ? (
+                <span className="text-green-400 font-medium">impostata</span>
+              ) : (
+                <span className="text-amber-400 font-medium">mai impostata</span>
+              )}
+            </p>
             <OperatorResetPasswordButton
               endpoint={`/api/superadmin/operators/${id}/reset-password`}
               operatorName={operator.name}
