@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/auth/staff";
 import { db } from "@/lib/db";
 import { RefundWindowsEditor } from "./refund-windows-editor";
+import { DailyReportToggle } from "./daily-report-toggle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Impostazioni — Admin" };
@@ -37,6 +38,7 @@ export default async function ImpostazioniPage() {
       active: true,
       refundBlockedWindows: true,
       refundBlockedTimezone: true,
+      dailyReportEnabled: true,
     },
   });
 
@@ -90,6 +92,11 @@ export default async function ImpostazioniPage() {
         >
           Scarica QR del locale (PNG)
         </a>
+      </div>
+
+      {/* Report corrispettivi: email giornaliera on/off */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-4">
+        <DailyReportToggle initialEnabled={venue.dailyReportEnabled} />
       </div>
 
       {/* Editable: refund windows + timezone */}

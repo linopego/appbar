@@ -41,6 +41,8 @@ model Venue {
   active                Boolean  @default(true)
   refundBlockedWindows  Json? // [{ day: 0-6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }]
   refundBlockedTimezone String   @default("Europe/Rome")
+  // Email giornaliera dei corrispettivi (07:00 Europe/Rome) ai manager
+  dailyReportEnabled    Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
