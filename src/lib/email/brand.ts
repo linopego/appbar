@@ -25,6 +25,13 @@ export const EMAIL_COLORS = {
 const FONT = "'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const BODY_FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
+// Base URL pubblica per i link nel footer delle email
+function emailBaseUrl(): string {
+  return (
+    process.env["NEXT_PUBLIC_APP_URL"] ?? process.env["NEXTAUTH_URL"] ?? "http://localhost:3000"
+  );
+}
+
 export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -75,6 +82,11 @@ export function emailLayout(opts: { title: string; bodyHtml: string }): string {
     </div>
     <p style="margin: 16px 0 0; color: ${EMAIL_COLORS.inkMuted}; font-size: 12px; text-align: center; font-family: ${BODY_FONT};">
       ${BRAND_NAME} — email automatica, non rispondere a questo messaggio.
+    </p>
+    <p style="margin: 6px 0 0; color: ${EMAIL_COLORS.inkMuted}; font-size: 12px; text-align: center; font-family: ${BODY_FONT};">
+      <a href="${emailBaseUrl()}/privacy" style="color: ${EMAIL_COLORS.inkMuted};">Privacy</a>
+      &nbsp;·&nbsp;
+      <a href="${emailBaseUrl()}/termini" style="color: ${EMAIL_COLORS.inkMuted};">Termini</a>
     </p>
   </div>
 </body>

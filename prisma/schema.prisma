@@ -41,6 +41,8 @@ model Venue {
   active                Boolean  @default(true)
   refundBlockedWindows  Json? // [{ day: 0-6, startHour: 22, startMin: 0, endHour: 6, endMin: 0 }]
   refundBlockedTimezone String   @default("Europe/Rome")
+  // Email giornaliera dei corrispettivi (07:00 Europe/Rome) ai manager
+  dailyReportEnabled    Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -156,6 +158,8 @@ model Order {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   paidAt          DateTime?
+  // Consenso ai Termini di servizio raccolto al checkout
+  tosAcceptedAt   DateTime?
 
   customer Customer    @relation(fields: [customerId], references: [id])
   venue    Venue       @relation(fields: [venueId], references: [id])
@@ -165,6 +169,8 @@ model Order {
 
   @@index([customerId, createdAt])
   @@index([venueId, createdAt])
+  // Serata live + corrispettivi: il venduto si interroga per data di pagamento
+  @@index([venueId, paidAt])
   @@index([status])
 }
 
@@ -207,6 +213,8 @@ model Ticket {
   @@index([qrToken])
   @@index([customerId, status])
   @@index([venueId, status])
+  // Serata live + corrispettivi: il consumato si interroga per data di consumo
+  @@index([venueId, consumedAt])
   @@index([orderId])
   @@index([expiresAt])
 }
@@ -345,6 +353,7 @@ enum OrderStatus {
 
 enum TicketStatus {
   ACTIVE
+  VOIDED // annullato per cancellazione account (diritto all'oblio), senza rimborso
   CONSUMED
   EXPIRED
   REFUNDED

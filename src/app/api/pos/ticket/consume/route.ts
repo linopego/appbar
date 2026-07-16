@@ -99,6 +99,11 @@ export async function POST(req: NextRequest) {
         return { ok: false as const, code: "REFUNDED" as const };
       }
 
+      // Annullato per cancellazione account: "Ticket annullato" al banco
+      if (ticket.status === "VOIDED") {
+        return { ok: false as const, code: "VOIDED" as const };
+      }
+
       if (ticket.status !== "ACTIVE") {
         return { ok: false as const, code: "INVALID_STATE" as const };
       }
@@ -163,6 +168,11 @@ export async function POST(req: NextRequest) {
     case "REFUNDED":
       return NextResponse.json(
         { ok: false, error: { code: "REFUNDED" } },
+        { status: 400 }
+      );
+    case "VOIDED":
+      return NextResponse.json(
+        { ok: false, error: { code: "VOIDED", message: "Ticket annullato" } },
         { status: 400 }
       );
     default:

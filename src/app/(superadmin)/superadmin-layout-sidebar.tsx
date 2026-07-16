@@ -13,6 +13,8 @@ const NAV = [
   { href: "/superadmin/ordini", label: "Ordini" },
   { href: "/superadmin/tickets", label: "Ticket" },
   { href: "/superadmin/rimborsi", label: "Rimborsi" },
+  { href: "/superadmin/corrispettivi", label: "Corrispettivi" },
+  { href: "/superadmin/live", label: "Serata live" },
   { href: "/superadmin/operatori", label: "Operatori" },
   { href: "/superadmin/admin-users", label: "Admin Users" },
   { href: "/superadmin/audit", label: "Audit Log" },

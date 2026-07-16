@@ -5,7 +5,7 @@ import type { EffectiveTicketStatus } from "@/lib/tickets/status";
 import { cn } from "@/lib/utils";
 
 const INTERVAL_MS = 5000;
-const TERMINAL: EffectiveTicketStatus[] = ["CONSUMED", "EXPIRED", "REFUNDED"];
+const TERMINAL: EffectiveTicketStatus[] = ["CONSUMED", "EXPIRED", "REFUNDED", "VOIDED"];
 
 interface Props {
   qrToken: string;
@@ -20,6 +20,7 @@ const STATUS_BG: Record<EffectiveTicketStatus, string> = {
   EXPIRED: "bg-klink-warning/10",
   CONSUMED: "bg-klink-bg",
   REFUNDED: "bg-klink-error/10",
+  VOIDED: "bg-klink-error/10",
 };
 
 const STATUS_OVERLAY: Record<EffectiveTicketStatus, { label: string; className: string } | null> = {
@@ -27,6 +28,7 @@ const STATUS_OVERLAY: Record<EffectiveTicketStatus, { label: string; className: 
   EXPIRED: { label: "Scaduto", className: "bg-klink-warning text-klink-ink" },
   CONSUMED: { label: "✓ Consegnato", className: "bg-klink-success text-klink-ink" },
   REFUNDED: { label: "Rimborsato", className: "bg-klink-error text-white" },
+  VOIDED: { label: "Annullato", className: "bg-klink-error text-white" },
 };
 
 export function TicketLiveStatus({ qrToken, initialStatus }: Props) {

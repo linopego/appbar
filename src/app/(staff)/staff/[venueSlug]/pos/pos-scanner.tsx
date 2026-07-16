@@ -31,7 +31,7 @@ type State =
 interface LookupData {
   ticketId: string;
   qrToken: string;
-  effectiveStatus: "ACTIVE" | "CONSUMED" | "EXPIRED" | "REFUNDED";
+  effectiveStatus: "ACTIVE" | "CONSUMED" | "EXPIRED" | "REFUNDED" | "VOIDED";
   tier: TierInfo;
   consumedAt: string | null;
   consumedByName: string | null;
@@ -58,6 +58,7 @@ function overlayBg(state: State): string {
       case "CONSUMED":
       case "EXPIRED":
       case "REFUNDED":
+      case "VOIDED":
         return "bg-klink-error text-white";
     }
   }
@@ -372,7 +373,9 @@ function OverlayContent({
           : "Già consegnato"
         : effectiveStatus === "EXPIRED"
           ? "Ticket scaduto"
-          : "Ticket rimborsato";
+          : effectiveStatus === "VOIDED"
+            ? "Ticket annullato"
+            : "Ticket rimborsato";
 
     return (
       <div className="text-center space-y-4 max-w-sm w-full">

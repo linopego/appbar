@@ -88,6 +88,15 @@ export const staffManagerLoginLimiter = redis
     })
   : null;
 
+// Export dei propri dati (GDPR): 1 richiesta l'ora per cliente
+export const dataExportLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(1, "1 h"),
+      prefix: "rl:data-export",
+    })
+  : null;
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string

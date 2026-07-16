@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { TempPasswordPanel } from "@/components/shared/temp-password-panel";
 
 export default function NuovoOperatorePage() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function NuovoOperatorePage() {
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Responsabile creato: password temporanea mostrata UNA volta
+  const [managerPassword, setManagerPassword] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,6 +24,10 @@ export default function NuovoOperatorePage() {
 
     if (pin !== pinConfirm) { setError("I PIN non coincidono"); return; }
     if (!/^\d{4,6}$/.test(pin)) { setError("Il PIN deve essere di 4-6 cifre numeriche"); return; }
+    if (role === "MANAGER" && !email.trim()) {
+      setError("Il Responsabile di locale ha bisogno di un'email per accedere al pannello");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -29,11 +36,28 @@ export default function NuovoOperatorePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim() || undefined, role, pin }),
       });
-      const json = await res.json() as { ok: boolean; error?: { message?: string } };
+      const json = await res.json() as { ok: boolean; data?: { id: string }; error?: { message?: string } };
       if (!res.ok || !json.ok) {
         setError(json.error?.message ?? "Errore durante il salvataggio");
         return;
       }
+
+      // Responsabile di locale: genera SUBITO la password del pannello
+      // (riusa il meccanismo di reset: mustChangePassword attivo)
+      if (role === "MANAGER" && json.data?.id) {
+        const resetRes = await fetch(`/api/admin/operators/${json.data.id}/reset-password`, {
+          method: "POST",
+        });
+        const resetJson = await resetRes.json() as { ok: boolean; data?: { tempPassword: string } };
+        if (resetRes.ok && resetJson.ok && resetJson.data?.tempPassword) {
+          setManagerPassword(resetJson.data.tempPassword);
+          return;
+        }
+        // creato ma senza password: si può sempre impostare dalla lista
+        setError("Operatore creato, ma la password non è stata generata: usa «Imposta/reimposta password» dalla lista.");
+        return;
+      }
+
       router.push("/admin/operatori");
       router.refresh();
     } catch {
@@ -41,6 +65,28 @@ export default function NuovoOperatorePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Responsabile creato: la password temporanea si vede SOLO ora
+  if (managerPassword) {
+    return (
+      <div className="max-w-md space-y-6">
+        <h1 className="text-2xl font-bold text-zinc-900">Responsabile di locale creato</h1>
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3">
+          <p className="text-sm text-zinc-700">
+            <strong>{name}</strong> può accedere al pannello da <strong>Area staff → Responsabile
+            di locale</strong> con la sua email e questa password temporanea:
+          </p>
+          <TempPasswordPanel tempPassword={managerPassword} />
+        </div>
+        <button
+          onClick={() => { router.push("/admin/operatori"); router.refresh(); }}
+          className="w-full py-3 rounded-xl bg-zinc-900 text-white font-semibold hover:bg-zinc-700 transition-colors"
+        >
+          Fatto, vai agli operatori
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -58,7 +104,7 @@ export default function NuovoOperatorePage() {
         </div>
 
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-zinc-900">Email <span className="text-zinc-400 font-normal">(opzionale, per notifiche rimborso se Manager)</span></label>
+          <label className="block text-sm font-medium text-zinc-900">Email <span className="text-zinc-400 font-normal">(obbligatoria per il Responsabile di locale)</span></label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254}
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500" />
         </div>
@@ -69,12 +115,17 @@ export default function NuovoOperatorePage() {
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500">
             <option value="BARISTA">Barista</option>
             <option value="CASSIERE">Cassiere</option>
-            <option value="MANAGER">Manager</option>
+            <option value="MANAGER">Responsabile di locale</option>
           </select>
           {role === "MANAGER" && (
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              ⚠️ I Manager hanno accesso completo al pannello admin di questo venue.
-            </p>
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 space-y-1">
+              <p className="font-semibold">Accesso al pannello</p>
+              <p>
+                ⚠️ Il Responsabile di locale ha accesso completo al pannello admin di questo
+                venue. Alla creazione verrà generata subito una password temporanea del
+                pannello: sarà mostrata una sola volta.
+              </p>
+            </div>
           )}
         </div>
 

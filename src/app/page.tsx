@@ -258,6 +258,9 @@ export default async function HomePage() {
               <Link href="/privacy" className="hover:text-foreground transition-colors">
                 Privacy
               </Link>
+              <Link href="/termini" className="hover:text-foreground transition-colors">
+                Termini
+              </Link>
             </nav>
           </div>
         </footer>

@@ -15,6 +15,7 @@ import { OrderStatusBanner } from "@/components/shared/order-status-banner";
 import { computeTicketStatus } from "@/lib/tickets/status";
 import { formatEur } from "@/lib/utils/money";
 import { LogoutButton } from "./logout-button";
+import { AccountSection } from "./account-section";
 
 export const dynamic = "force-dynamic";
 
@@ -156,6 +157,17 @@ export default async function ProfiloPage() {
                 })}
               </ul>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Il mio account: portabilità e diritto all'oblio (GDPR) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Il mio account</CardTitle>
+            <CardDescription>Esporta i tuoi dati o elimina l&apos;account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AccountSection />
           </CardContent>
         </Card>
       </div>

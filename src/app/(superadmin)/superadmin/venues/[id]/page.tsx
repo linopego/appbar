@@ -5,14 +5,11 @@ import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import { VenueToggleActiveButton } from "./toggle-active-button";
+import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABELS: Record<string, string> = {
-  BARISTA: "Barista",
-  CASSIERE: "Cassiere",
-  MANAGER: "Manager",
-};
+const ROLE_LABELS = OPERATOR_ROLE_LABELS;
 
 export default async function VenueDetailPage({
   params,

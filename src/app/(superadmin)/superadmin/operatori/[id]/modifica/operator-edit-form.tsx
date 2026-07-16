@@ -115,7 +115,7 @@ export function SuperAdminOperatorEditForm({
         >
           <option value="BARISTA">Barista</option>
           <option value="CASSIERE">Cassiere</option>
-          <option value="MANAGER">Manager</option>
+          <option value="MANAGER">Responsabile di locale</option>
         </select>
       </div>
 

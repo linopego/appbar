@@ -75,7 +75,7 @@ export function OperatorEditForm({ operatorId, initialName, initialEmail, initia
           className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500">
           <option value="BARISTA">Barista</option>
           <option value="CASSIERE">Cassiere</option>
-          <option value="MANAGER">Manager</option>
+          <option value="MANAGER">Responsabile di locale</option>
         </select>
       </div>
 

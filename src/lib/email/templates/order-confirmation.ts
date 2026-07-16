@@ -9,6 +9,9 @@ export interface OrderConfirmationData {
   ticketsCount: number;
   expiresAt: Date;
   orderUrl: string;
+  // Link testuali "Aggiungi al Wallet" per ticket (feature flag: vuoto se i
+  // wallet non sono configurati); niente badge immagine pesanti in email
+  walletLinks?: Array<{ label: string; appleUrl?: string; googleUrl?: string }>;
 }
 
 export function renderOrderConfirmationHtml(data: OrderConfirmationData): string {
@@ -48,6 +51,28 @@ export function renderOrderConfirmationHtml(data: OrderConfirmationData): string
     `)}
 
     ${emailCta(data.orderUrl, "Apri i tuoi QR")}
+
+    ${
+      data.walletLinks && data.walletLinks.length > 0
+        ? `
+    <p style="margin: 0 0 4px; color: ${EMAIL_COLORS.inkSoft}; line-height: 1.5; font-size: 14px;">
+      <strong style="color: ${EMAIL_COLORS.ink};">Aggiungi al Wallet</strong> (il QR anche offline):
+    </p>
+    <ul style="margin: 0 0 24px; padding-left: 18px; color: ${EMAIL_COLORS.inkSoft}; font-size: 14px; line-height: 1.7;">
+      ${data.walletLinks
+        .map((t) => {
+          const links = [
+            t.appleUrl ? `<a href="${t.appleUrl}" style="color: ${EMAIL_COLORS.ink};">Apple Wallet</a>` : "",
+            t.googleUrl ? `<a href="${t.googleUrl}" style="color: ${EMAIL_COLORS.ink};">Google Wallet</a>` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return `<li>${escapeHtml(t.label)}: ${links}</li>`;
+        })
+        .join("")}
+    </ul>`
+        : ""
+    }
 
     <p style="margin: 0 0 8px; color: ${EMAIL_COLORS.inkSoft}; line-height: 1.5; font-size: 14px;">
       <strong style="color: ${EMAIL_COLORS.ink};">Come funziona:</strong> apri il link sopra dal tuo telefono al banco: trovi un QR grande per ogni ticket. Il barista li scansiona e ti serve.

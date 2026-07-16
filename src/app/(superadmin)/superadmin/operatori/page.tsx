@@ -5,17 +5,14 @@ import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { SuperAdminOperatorToggleButton } from "./operator-toggle-button";
 import type { Prisma } from "@prisma/client";
+import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operatori — Super Admin" };
 
 const PAGE_SIZE = 25;
 
-const ROLE_LABELS: Record<string, string> = {
-  BARISTA: "Barista",
-  CASSIERE: "Cassiere",
-  MANAGER: "Manager",
-};
+const ROLE_LABELS = OPERATOR_ROLE_LABELS;
 
 const ROLE_COLORS: Record<string, string> = {
   BARISTA: "bg-zinc-800 text-zinc-300",
@@ -138,7 +135,7 @@ export default async function SuperAdminOperatoriPage({
               <option value="">Tutti</option>
               <option value="BARISTA">Barista</option>
               <option value="CASSIERE">Cassiere</option>
-              <option value="MANAGER">Manager</option>
+              <option value="MANAGER">Responsabile di locale</option>
             </select>
           </div>
           <div className="space-y-1">

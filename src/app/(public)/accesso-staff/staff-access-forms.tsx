@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,7 @@ export function StaffAccessForms() {
         {(
           [
             { key: "banco", label: "Sono al banco" },
-            { key: "manager", label: "Sono un manager" },
+            { key: "manager", label: "Responsabile di locale" },
           ] as const
         ).map(({ key, label }) => (
           <button
@@ -35,6 +36,19 @@ export function StaffAccessForms() {
       </div>
 
       {tab === "banco" ? <VenueCodeForm /> : <ManagerLoginForm />}
+
+      {/* Le tre figure si confondono: la porta degli amministratori è un'altra */}
+      {tab === "manager" && (
+        <div className="rounded-2xl border bg-klink-lime-soft/60 p-4 text-sm">
+          <p className="font-medium">Gestisci un&apos;organizzazione con uno o più locali?</p>
+          <Link
+            href="/superadmin/login"
+            className="mt-1 inline-block font-semibold underline underline-offset-4 hover:no-underline"
+          >
+            → Accesso amministratori
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -139,6 +153,10 @@ function ManagerLoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border bg-card p-5">
+      <p className="text-xs text-muted-foreground">
+        Accedi con email e password. Non hai una password? Chiedila a chi gestisce
+        il tuo locale. Il PIN si usa solo alla cassa.
+      </p>
       <div className="space-y-1">
         <label htmlFor="manager-email" className="block text-sm font-medium">
           Email
@@ -173,8 +191,10 @@ function ManagerLoginForm() {
       <Button type="submit" size="lg" className="w-full" disabled={loading}>
         {loading ? "Accesso…" : "Entra nel pannello"}
       </Button>
+      {/* Suggerimento statico: l'errore resta generico (niente oracoli), ma
+          chi ha sbagliato porta trova subito quella giusta */}
       <p className="text-xs text-muted-foreground text-center">
-        Non hai una password? Chiedila a chi gestisce il tuo locale sulla piattaforma.
+        Se sei un amministratore dell&apos;organizzazione, usa l&apos;accesso amministratori.
       </p>
     </form>
   );

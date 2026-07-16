@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { resend } from "./client";
 import { renderOrderConfirmationHtml } from "./templates/order-confirmation";
 import { formatEur } from "@/lib/utils/money";
+import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet/config";
 
 export async function sendOrderConfirmationEmail(orderId: string) {
   const order = await db.order.findUnique({
@@ -11,7 +12,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
       customer: true,
       venue: true,
       items: { include: { priceTier: true } },
-      tickets: true,
+      tickets: { include: { priceTier: { select: { name: true } } } },
     },
   });
 
@@ -24,6 +25,20 @@ export async function sendOrderConfirmationEmail(orderId: string) {
   const appUrl =
     process.env["NEXT_PUBLIC_APP_URL"] ?? process.env["NEXTAUTH_URL"] ?? "http://localhost:3000";
   const orderUrl = `${appUrl}/ordine/${order.id}`;
+
+  // Link "Aggiungi al Wallet" per ticket, solo se il modulo è configurato
+  const appleOn = isAppleWalletConfigured();
+  const googleOn = isGoogleWalletConfigured();
+  const walletLinks =
+    appleOn || googleOn
+      ? order.tickets.map((ticket, i) => ({
+          label: `Ticket ${i + 1} — ${ticket.priceTier.name}`,
+          ...(appleOn ? { appleUrl: `${appUrl}/api/tickets/${ticket.qrToken}/wallet/apple` } : {}),
+          ...(googleOn
+            ? { googleUrl: `${appUrl}/api/tickets/${ticket.qrToken}/wallet/google` }
+            : {}),
+        }))
+      : undefined;
 
   const html = renderOrderConfirmationHtml({
     customerName: order.customer.firstName ?? order.customer.email,
@@ -39,6 +54,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
     ticketsCount: order.tickets.length,
     expiresAt: order.tickets[0]?.expiresAt ?? new Date(),
     orderUrl,
+    ...(walletLinks ? { walletLinks } : {}),
   });
 
   const subject = `I tuoi ticket — ${order.venue.name}`;

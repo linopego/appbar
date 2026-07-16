@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,19 @@ export function LoginForm({ mode = "login", callbackUrl = "/profilo" }: LoginFor
         <GoogleIcon />
         Accedi con Google
       </Button>
+
+      {/* Informativa (non bloccante): l'account si crea proseguendo */}
+      <p className="text-xs text-muted-foreground text-center">
+        Proseguendo accetti i{" "}
+        <Link href="/termini" className="underline underline-offset-2 hover:text-foreground">
+          Termini di servizio
+        </Link>{" "}
+        e l&apos;
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+          informativa privacy
+        </Link>
+        .
+      </p>
     </div>
   );
 }
