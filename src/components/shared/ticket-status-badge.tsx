@@ -20,6 +20,9 @@ export function TicketStatusBadge({ status, consumedAt }: Props) {
   if (status === "REFUNDED") {
     return <Badge variant="destructive">Rimborsato</Badge>;
   }
+  if (status === "VOIDED") {
+    return <Badge variant="destructive">Annullato</Badge>;
+  }
 
   // CONSUMED
   let consumedLabel = "Consegnato";

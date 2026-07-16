@@ -114,8 +114,8 @@ export default async function VenuePage({ params }: VenuePageProps) {
           </ol>
         </details>
 
-        {/* Spazio per la barra totale sticky */}
-        <div className="h-28" aria-hidden />
+        {/* Spazio per la barra totale sticky (totale + checkbox Termini) */}
+        <div className="h-36" aria-hidden />
       </div>
     </main>
   );

@@ -135,6 +135,8 @@ export async function POST(req: NextRequest) {
         stripeSessionId: placeholderSessionId,
         stripeAccountId: organization.stripeAccountId,
         platformFeeAmount,
+        // Consenso ai Termini raccolto al checkout (checkbox non preselezionata)
+        tosAcceptedAt: new Date(),
       },
     });
 

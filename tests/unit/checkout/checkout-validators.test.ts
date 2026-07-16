@@ -38,6 +38,7 @@ describe("checkoutSchema", () => {
     const r = checkoutSchema.safeParse({
       venueSlug: "casa-dei-gelsi",
       items: [{ priceTierId: VALID_CUID, quantity: 2 }],
+      tosAccepted: true,
     });
     expect(r.success).toBe(true);
   });
@@ -46,6 +47,7 @@ describe("checkoutSchema", () => {
     const r = checkoutSchema.safeParse({
       venueSlug: "casa-dei-gelsi",
       items: [],
+      tosAccepted: true,
     });
     expect(r.success).toBe(false);
     if (!r.success) {
@@ -55,10 +57,22 @@ describe("checkoutSchema", () => {
 
   it("rifiuta più di 10 tipi di articolo", () => {
     const items = Array.from({ length: 11 }, () => ({ priceTierId: VALID_CUID, quantity: 1 }));
-    const r = checkoutSchema.safeParse({ venueSlug: "casa-dei-gelsi", items });
+    const r = checkoutSchema.safeParse({ venueSlug: "casa-dei-gelsi", items, tosAccepted: true });
     expect(r.success).toBe(false);
     if (!r.success) {
       expect(r.error.issues[0]?.message).toBe("Massimo 10 tipi di articolo");
+    }
+  });
+
+  it("rifiuta senza consenso ai Termini (assente o false)", () => {
+    const base = { venueSlug: "casa-dei-gelsi", items: [{ priceTierId: VALID_CUID, quantity: 1 }] };
+    expect(checkoutSchema.safeParse(base).success).toBe(false);
+    const r = checkoutSchema.safeParse({ ...base, tosAccepted: false });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues[0]?.message).toBe(
+        "Devi accettare i Termini di servizio e l'informativa privacy"
+      );
     }
   });
 
@@ -66,6 +80,7 @@ describe("checkoutSchema", () => {
     const r = checkoutSchema.safeParse({
       venueSlug: "",
       items: [{ priceTierId: VALID_CUID, quantity: 1 }],
+      tosAccepted: true,
     });
     expect(r.success).toBe(false);
   });

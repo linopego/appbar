@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatEur } from "@/lib/utils/money";
 import {
@@ -30,6 +31,8 @@ interface VenuePurchaseProps {
 export function VenuePurchase({ venueSlug, priceTiers, isLoggedIn }: VenuePurchaseProps) {
   const router = useRouter();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  // Consenso ai Termini: MAI preselezionato; senza spunta il pagamento non parte
+  const [tosAccepted, setTosAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -79,6 +82,10 @@ export function VenuePurchase({ venueSlug, priceTiers, isLoggedIn }: VenuePurcha
       .map((t) => ({ priceTierId: t.id, quantity: quantities[t.id] ?? 0 }));
 
     if (items.length === 0) return;
+    if (!tosAccepted) {
+      setError("Per procedere accetta i Termini di servizio e l'informativa privacy.");
+      return;
+    }
 
     // Non loggato: selezione in sessionStorage, poi login con ritorno qui
     if (!isLoggedIn) {
@@ -96,7 +103,7 @@ export function VenuePurchase({ venueSlug, priceTiers, isLoggedIn }: VenuePurcha
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ venueSlug, items }),
+          body: JSON.stringify({ venueSlug, items, tosAccepted }),
         });
         const data = (await res.json()) as {
           ok: boolean;
@@ -164,6 +171,27 @@ export function VenuePurchase({ venueSlug, priceTiers, isLoggedIn }: VenuePurcha
 
       {/* Barra totale sticky: sempre a portata di pollice */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur-sm">
+        <div className="container mx-auto px-4 pt-2.5 max-w-2xl">
+          {/* Consenso ai Termini: checkbox MAI preselezionata, obbligatoria */}
+          <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tosAccepted}
+              onChange={(e) => setTosAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-klink-ink"
+            />
+            <span>
+              Ho letto e accetto i{" "}
+              <Link href="/termini" className="underline underline-offset-2 text-foreground" target="_blank">
+                Termini di servizio
+              </Link>{" "}
+              e l&apos;
+              <Link href="/privacy" className="underline underline-offset-2 text-foreground" target="_blank">
+                informativa privacy
+              </Link>
+            </span>
+          </label>
+        </div>
         <div className="container mx-auto px-4 py-3 max-w-2xl flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-muted-foreground">
@@ -176,7 +204,7 @@ export function VenuePurchase({ venueSlug, priceTiers, isLoggedIn }: VenuePurcha
           <Button
             size="lg"
             className="px-10"
-            disabled={totalItems === 0 || isPending}
+            disabled={totalItems === 0 || !tosAccepted || isPending}
             onClick={handlePay}
           >
             {isPending ? "Un attimo…" : "Paga"}

@@ -158,6 +158,8 @@ model Order {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   paidAt          DateTime?
+  // Consenso ai Termini di servizio raccolto al checkout
+  tosAcceptedAt   DateTime?
 
   customer Customer    @relation(fields: [customerId], references: [id])
   venue    Venue       @relation(fields: [venueId], references: [id])
@@ -351,6 +353,7 @@ enum OrderStatus {
 
 enum TicketStatus {
   ACTIVE
+  VOIDED // annullato per cancellazione account (diritto all'oblio), senza rimborso
   CONSUMED
   EXPIRED
   REFUNDED

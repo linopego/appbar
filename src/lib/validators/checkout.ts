@@ -15,6 +15,9 @@ export const checkoutSchema = z.object({
     .array(checkoutLineItemSchema)
     .min(1, { message: "Almeno un articolo richiesto" })
     .max(10, { message: "Massimo 10 tipi di articolo" }),
+  // Consenso ai Termini: obbligatorio, MAI preselezionato lato client.
+  // Validazione anche qui: senza accettazione il pagamento non parte.
+  tosAccepted: z.literal(true, "Devi accettare i Termini di servizio e l'informativa privacy"),
 });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
