@@ -44,8 +44,13 @@ export default async function TicketPage({ params }: PageProps) {
   }
 
   const session = await auth();
-  const isOwner = session?.user?.id === ticket.customerId;
-  const backHref = isOwner ? `/ordine/${ticket.orderId}` : "/";
+  // Ritorno esplicito e prevedibile (niente history.back): loggato →
+  // "I tuoi ticket" (/home). Anonimo (arrivato col solo link del token,
+  // es. email su un altro dispositivo): /home lo manderebbe al login,
+  // quindi il link punta alla pagina dell'ordine, sempre utile.
+  const backLink = session?.user
+    ? { href: "/home", label: "← I tuoi ticket" }
+    : { href: `/ordine/${ticket.orderId}`, label: "← Vedi l'ordine" };
 
   const status = computeTicketStatus(ticket);
   const orderShortId = ticket.orderId.slice(0, 8).toUpperCase();
@@ -61,14 +66,14 @@ export default async function TicketPage({ params }: PageProps) {
             {ticket.venue.name}
           </div>
           <Link
-            href={backHref}
+            href={backLink.href}
             className={
               status === "ACTIVE"
                 ? "text-sm text-klink-ink underline underline-offset-4 hover:no-underline"
                 : "text-sm text-muted-foreground hover:text-foreground"
             }
           >
-            ← Indietro
+            {backLink.label}
           </Link>
         </div>
 
