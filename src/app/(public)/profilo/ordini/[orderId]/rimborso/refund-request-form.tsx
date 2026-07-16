@@ -1,5 +1,6 @@
 "use client";
 
+import { Clock } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatEur } from "@/lib/utils/money";
@@ -64,7 +65,7 @@ export function RefundRequestForm({
 
     return (
       <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-6 text-center space-y-3">
-        <p className="text-2xl">🕐</p>
+        <Clock aria-hidden className="mx-auto h-8 w-8 text-yellow-900" />
         <p className="font-semibold text-yellow-900">Rimborsi non disponibili ora</p>
         <p className="text-sm text-yellow-800">
           {nextFormatted

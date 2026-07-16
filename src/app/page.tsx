@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { KlinkLogo } from "@/components/brand/logo";
 import { PublicHeader } from "@/components/shared/public-header";
 import { Reveal } from "@/components/shared/reveal";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/brand";
@@ -233,9 +232,6 @@ export default async function HomePage() {
             <Reveal>
               <div className="mt-14 rounded-2xl border bg-card p-8 text-center shadow-card relative overflow-hidden">
                 <Sparkle size={72} className="absolute -right-4 -bottom-4 text-klink-lime opacity-50" aria-hidden />
-                <div className="flex justify-center mb-3">
-                  <KlinkLogo variant="mark" size={36} />
-                </div>
                 <h2 className="text-xl font-semibold">Porta {BRAND_NAME} nel tuo locale</h2>
                 <p className="text-sm text-muted-foreground mt-2 mb-6">
                   Scrivici due righe: ti rispondiamo con una demo e i costi, senza impegno.

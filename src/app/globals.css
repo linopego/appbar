@@ -279,3 +279,23 @@
   background: hsl(var(--muted, var(--background)));
   font-weight: 600;
 }
+
+/* Onda su superfici già lime (card ticket attivo): Ink a bassa opacità,
+   mai lime-su-lime */
+.klink-ripple[data-kind="ink-on-lime"] {
+  background-color: var(--color-klink-ink);
+  animation-name: klink-ripple-soft;
+}
+@keyframes klink-ripple-soft {
+  from {
+    transform: scale(0);
+    opacity: 0.18;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.klink-press-flash-ink-on-lime {
+  animation: klink-flash-affirmative-on-lime 200ms linear;
+}

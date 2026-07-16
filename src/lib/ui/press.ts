@@ -11,7 +11,9 @@
 // niente onda né scala: il listener applica un cambio colore netto (~200ms).
 
 // Tipo dell'attributo data-press letto dal listener globale.
-export type PressKind = "affirmative" | "affirmative-on-lime" | "negative";
+// "ink-on-lime": per superfici GIÀ lime (es. card ticket attivo) — onda Ink
+// a bassa opacità, mai lime-su-lime.
+export type PressKind = "affirmative" | "affirmative-on-lime" | "negative" | "ink-on-lime";
 
 // Base comune: host dell'onda (position relative + overflow hidden, così
 // border-radius è rispettato) + transizione ~150ms + leggera scala pressed.

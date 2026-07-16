@@ -121,7 +121,7 @@ export default function NuovoOperatorePage() {
             <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 space-y-1">
               <p className="font-semibold">Accesso al pannello</p>
               <p>
-                ⚠️ Il Responsabile di locale ha accesso completo al pannello admin di questo
+                Il Responsabile di locale ha accesso completo al pannello admin di questo
                 venue. Alla creazione verrà generata subito una password temporanea del
                 pannello: sarà mostrata una sola volta.
               </p>

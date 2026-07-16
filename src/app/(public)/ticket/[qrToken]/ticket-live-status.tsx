@@ -15,8 +15,10 @@ interface Props {
 // Colori funzionali Klink (BRAND.md): il lime è il colore del "sì" (testo
 // SEMPRE Ink su lime), l'errore è bianco su error, gli stati neutri restano
 // neutri per non confondere il barista.
+// ACTIVE su lime: il lime identifica ciò che è valido/attivo (BRAND.md).
+// Il QR resta comunque sul pannello bianco della TicketCard.
 const STATUS_BG: Record<EffectiveTicketStatus, string> = {
-  ACTIVE: "bg-klink-white",
+  ACTIVE: "bg-klink-lime",
   EXPIRED: "bg-klink-warning/10",
   CONSUMED: "bg-klink-bg",
   REFUNDED: "bg-klink-error/10",

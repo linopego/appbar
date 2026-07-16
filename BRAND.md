@@ -4,6 +4,7 @@ Fonte di verità per l'identità visiva di Klink. Ogni implementazione UI deve r
 
 Changelog v1.1: sfondo pagina da panna a grigio freddo (#F5F6F8) con rinomina del token in `--klink-bg`; bordo freddo (#E4E7EC); nuovo token `--klink-error-soft`; nuova sezione "Feedback di pressione".
 Changelog v1.2: feedback di pressione v2 — impulso che si completa da solo (onda ~400ms dal punto di tocco), visibile anche sui tap veloci.
+Changelog v1.3: mai emoji in interfaccia ed email; il mark mai come decorazione riempitiva; il lime identifica ciò che è valido/attivo (ticket ATTIVI su lime, avvisi su lime come badge Ink/bianco, QR sempre su pannello bianco).
 
 ---
 
@@ -14,6 +15,7 @@ Changelog v1.2: feedback di pressione v2 — impulso che si completa da solo (on
 - **Tono di voce (area clienti)**: fresco, diretto, amichevole ma non caricaturale. Dare del "tu". Frasi corte. Niente gergo tecnico ("ticket" sì, "token QR" mai verso il cliente)
 - **Tono di voce (staff/admin)**: asciutto, funzionale, italiano formale-chiaro ("Conferma", "Saldo giornata", "Già consegnato")
 - **Mai**: punti esclamativi multipli, CAPS LOCK, anglicismi inutili ("purchase" no, "acquista" sì)
+- **Mai emoji nell'interfaccia e nelle email**: dove serve un segno visivo si usano le icone del design system (lucide), non pittogrammi Unicode
 
 Il nome del prodotto vive in `src/lib/brand.ts` (`BRAND_NAME = "Klink"`): mai hardcodarlo altrove.
 
@@ -43,6 +45,7 @@ Il marchio è la **scintilla Klink** (sparkle a 4 punte con fianchi concavi + sc
 - Area di rispetto: minimo 1/2 dell'altezza del mark su ogni lato
 - Dimensione minima: 20px (mark), 90px (lockup)
 - MAI: ruotare, ombreggiare, applicare gradienti, cambiare i colori fuori dalle varianti previste, deformare le proporzioni
+- Il mark non si usa mai come decorazione riempitiva: compare solo dove ha una funzione (header, feedback di scansione, icone app/favicon, poster QR)
 
 ## 3. Palette
 
@@ -76,6 +79,8 @@ Il marchio è la **scintilla Klink** (sparkle a 4 punte con fianchi concavi + sc
 - MAI testo bianco su lime (contrasto insufficiente)
 - Testo su bg/bianco: Ink o Ink-soft; Ink-muted solo per placeholder e didascalie
 - Su Ink: testo bianco o lime (il lime su Ink è consentito perché usato a taglie grandi/bold)
+- Il lime identifica ciò che è valido/attivo: feedback positivo del POS e ticket ATTIVI. Gli stati consumato/scaduto/rimborsato non usano mai il lime
+- Su superfici lime niente colore warning (contrasto insufficiente): gli avvisi diventano badge Ink con testo bianco. Il QR non va MAI su sfondo lime: sempre su pannello bianco con margine generoso (quiet zone)
 
 ## 4. Tipografia
 

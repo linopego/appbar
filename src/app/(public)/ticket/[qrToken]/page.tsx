@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -29,7 +30,7 @@ export default async function TicketPage({ params }: PageProps) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-zinc-100 p-6">
         <div className="max-w-md w-full text-center space-y-3">
-          <div className="text-5xl">⚠</div>
+          <AlertTriangle aria-hidden className="mx-auto h-12 w-12 text-klink-warning" />
           <h1 className="text-2xl font-bold">Ticket non valido</h1>
           <p className="text-muted-foreground text-sm">
             Questo ticket non esiste o è stato annullato. Controlla il link e riprova.
@@ -53,12 +54,19 @@ export default async function TicketPage({ params }: PageProps) {
     <main className="min-h-screen relative overflow-hidden">
       <TicketLiveStatus qrToken={ticket.qrToken} initialStatus={status} />
 
+      {/* Su cornice lime (ticket attivo) i testi sono Ink pieno: contrasto */}
       <div className="relative z-10 min-h-screen flex flex-col p-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">{ticket.venue.name}</div>
+          <div className={status === "ACTIVE" ? "text-sm text-klink-ink font-medium" : "text-sm text-muted-foreground"}>
+            {ticket.venue.name}
+          </div>
           <Link
             href={backHref}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className={
+              status === "ACTIVE"
+                ? "text-sm text-klink-ink underline underline-offset-4 hover:no-underline"
+                : "text-sm text-muted-foreground hover:text-foreground"
+            }
           >
             ← Indietro
           </Link>
@@ -80,7 +88,11 @@ export default async function TicketPage({ params }: PageProps) {
           </div>
         )}
 
-        <div className="text-center text-xs text-muted-foreground space-y-1">
+        <div
+          className={`text-center text-xs space-y-1 ${
+            status === "ACTIVE" ? "text-klink-ink" : "text-muted-foreground"
+          }`}
+        >
           <div>Valido fino al {formatDate(ticket.expiresAt)}</div>
           <div>Ordine #{orderShortId}</div>
         </div>

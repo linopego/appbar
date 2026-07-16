@@ -35,7 +35,7 @@ export function renderOrderConfirmationHtml(data: OrderConfirmationData): string
   return emailLayout({
     title: "I tuoi ticket",
     bodyHtml: `
-    <h1 style="margin: 0 0 8px; font-size: 24px; color: ${EMAIL_COLORS.ink};">Ciao ${escapeHtml(data.customerName)} 👋</h1>
+    <h1 style="margin: 0 0 8px; font-size: 24px; color: ${EMAIL_COLORS.ink};">Ciao ${escapeHtml(data.customerName)}</h1>
     <p style="margin: 0 0 24px; color: ${EMAIL_COLORS.inkSoft}; line-height: 1.5;">
       Il tuo pagamento è stato ricevuto. Hai <strong style="color: ${EMAIL_COLORS.ink};">${data.ticketsCount} ticket</strong> validi per <strong style="color: ${EMAIL_COLORS.ink};">${escapeHtml(data.venueName)}</strong>.
     </p>

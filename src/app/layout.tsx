@@ -3,6 +3,7 @@ import { Inter, Sora } from "next/font/google";
 import { Toaster } from "sonner";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { PressFeedbackListener } from "@/components/providers/press-feedback";
+import { ServiceWorkerRegistration } from "@/components/providers/service-worker";
 import { BRAND_NAME, BRAND_TAGLINE, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
 
@@ -26,6 +27,12 @@ export const metadata: Metadata = {
     template: `%s — ${BRAND_NAME}`,
   },
   description: BRAND_TAGLINE,
+  // PWA su iOS (l'apple-touch-icon è già servita da src/app/apple-icon.png)
+  appleWebApp: {
+    capable: true,
+    title: BRAND_NAME,
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,6 +49,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${sora.variable} antialiased`}>
         <SessionProvider>{children}</SessionProvider>
         <PressFeedbackListener />
+        <ServiceWorkerRegistration />
         <Toaster richColors />
       </body>
     </html>
