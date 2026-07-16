@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { extractTicketToken } from "@/lib/pos/extract-token";
 import { messageForCode } from "@/lib/pos/messages";
@@ -71,6 +72,7 @@ function overlayBg(state: State): string {
 
 // ── component ──────────────────────────────────────────────────────────────
 export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }: Props) {
+  const router = useRouter();
   const [state, setState] = useState<State>({ kind: "idle" });
   const [cameraError, setCameraError] = useState<string | null>(null);
   // Camera on demand: parte SOLO dal bottone "Scansiona ticket"
@@ -190,6 +192,18 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
     };
   }, [scannerOn, handleScan]);
 
+  // Logout: POST via fetch e push verso il login PIN del venue — mai
+  // navigare direttamente all'URL dell'API (mostrerebbe il JSON crudo)
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/staff/logout", { method: "POST" });
+    } catch {
+      // anche se la rete fallisce, si torna comunque al login
+    }
+    router.push(`/staff/${venueSlug}`);
+    router.refresh();
+  };
+
   const handleConsume = async () => {
     if (state.kind !== "result" || state.data.effectiveStatus !== "ACTIVE") return;
     const { qrToken, tier } = state.data;
@@ -256,11 +270,10 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
               Admin
             </Link>
           )}
-          <form action="/api/staff/logout" method="POST">
-            <button type="submit" className="underline hover:text-zinc-200">
-              Esci
-            </button>
-          </form>
+          {/* Logout via fetch + push: mai navigare all'URL dell'API (JSON crudo) */}
+          <button onClick={handleLogout} className="underline hover:text-zinc-200">
+            Esci
+          </button>
         </div>
       </div>
 

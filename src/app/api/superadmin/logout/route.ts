@@ -14,5 +14,11 @@ export async function POST(req: NextRequest) {
     });
   }
   await destroyAdminSession();
+
+  // Navigazione (form/anchor): mai JSON crudo — 303 verso il login admin
+  if (req.headers.get("accept")?.includes("text/html")) {
+    return NextResponse.redirect(new URL("/superadmin/login", req.url), 303);
+  }
+
   return NextResponse.json({ ok: true });
 }
