@@ -9,10 +9,10 @@ import {
   pickRecentVenues,
   RECENT_VENUE_ORDER_STATUSES,
 } from "@/lib/venues/recent";
+import { ChevronRight, QrCode, Ticket } from "lucide-react";
 import { pressAttrs, pressBase } from "@/lib/ui/press";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { KlinkLogo } from "@/components/brand/logo";
 import { WalletButtons } from "@/components/wallet/wallet-buttons";
 import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet/config";
 
@@ -85,7 +85,7 @@ export default async function CustomerHomePage() {
       <div className="container mx-auto px-4 py-8 sm:py-10 max-w-2xl space-y-10">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {firstName ? `Ciao ${firstName} 👋` : "I tuoi ticket"}
+            {firstName ? `Ciao ${firstName}` : "I tuoi ticket"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Mostra il QR al banco: una scansione, una consumazione.
@@ -100,9 +100,11 @@ export default async function CustomerHomePage() {
             I tuoi locali
           </h2>
           {recentVenues.length === 0 ? (
-            <div className="rounded-2xl border bg-card p-6 text-center space-y-2">
-              <div className="flex justify-center opacity-60">
-                <KlinkLogo variant="mark" size={32} />
+            <div className="rounded-2xl border bg-card p-6 text-center space-y-3">
+              <div className="flex justify-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-klink-lime-soft">
+                  <QrCode aria-hidden className="h-7 w-7 text-klink-ink" strokeWidth={1.5} />
+                </span>
               </div>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                 Qui troverai i locali dove hai acquistato. Per iniziare, inquadra
@@ -110,51 +112,36 @@ export default async function CustomerHomePage() {
               </p>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-                {recentVenues.map((venue) => (
-                  <Link
-                    key={venue.slug}
-                    href={`/${venue.slug}`}
-                    {...pressAttrs("affirmative")}
-                    className={cn(
-                      "block rounded-2xl border bg-card p-5 min-h-28 hover:shadow-card",
-                      pressBase
-                    )}
-                  >
-                    {/* Mark come decorazione discreta */}
-                    <span
-                      aria-hidden
-                      className="absolute top-4 right-4 opacity-15 pointer-events-none"
-                    >
-                      <KlinkLogo variant="mark" size={28} />
-                    </span>
-                    <span className="block pr-10 font-display text-lg font-semibold leading-snug">
-                      {venue.name}
-                    </span>
-                    <span className="block mt-1 text-xs text-muted-foreground">
-                      Ultimo acquisto: {lastPurchaseLabel(venue.lastOrderAt)}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <div className="mt-3 text-right">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
+              {recentVenues.map((venue) => (
                 <Link
-                  href="/profilo"
-                  className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                  key={venue.slug}
+                  href={`/${venue.slug}`}
+                  {...pressAttrs("affirmative")}
+                  className={cn(
+                    "block rounded-2xl border bg-card p-5 min-h-28 hover:shadow-card",
+                    pressBase
+                  )}
                 >
-                  Tutti i tuoi ordini
+                  <span className="block font-display text-lg font-semibold leading-snug">
+                    {venue.name}
+                  </span>
+                  <span className="block mt-1 text-xs text-muted-foreground">
+                    Ultimo acquisto: {lastPurchaseLabel(venue.lastOrderAt)}
+                  </span>
                 </Link>
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </section>
 
         {/* Ticket attivi */}
         {groups.length === 0 ? (
           <div className="rounded-2xl border bg-card p-8 text-center space-y-3">
-            <div className="flex justify-center opacity-60">
-              <KlinkLogo variant="mark" size={40} />
+            <div className="flex justify-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-klink-lime-soft">
+                <Ticket aria-hidden className="h-12 w-12 text-klink-ink" strokeWidth={1.5} />
+              </span>
             </div>
             <p className="font-medium">Non hai ticket attivi</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
@@ -177,38 +164,44 @@ export default async function CustomerHomePage() {
                   {group.tickets.map((ticket) => {
                     const soon = isExpiringSoon(ticket.expiresAt, now);
                     return (
-                      <li key={ticket.id} className="rounded-2xl border bg-card">
+                      <li key={ticket.id}>
+                        {/* Gettone lime: il lime significa "valido/attivo".
+                            TUTTA la card è un link vero; testi in Ink pieno */}
                         <Link
                           href={`/ticket/${ticket.qrToken}`}
-                          className="flex items-center justify-between gap-3 p-4 hover:shadow-card transition-shadow rounded-2xl"
+                          aria-label={`Apri il QR del ticket ${ticket.priceTier.name}`}
+                          {...pressAttrs("ink-on-lime")}
+                          className={cn(
+                            "flex min-h-[60px] items-center justify-between gap-3 rounded-2xl bg-klink-lime p-4",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-klink-ink focus-visible:ring-offset-2",
+                            "active:bg-klink-lime-hover",
+                            pressBase
+                          )}
                         >
                           <div className="min-w-0">
-                            <p className="font-display font-semibold truncate">
+                            <p className="font-display font-semibold text-klink-ink truncate">
                               {ticket.priceTier.name}
                             </p>
-                            <p
-                              className={`text-xs mt-0.5 ${
-                                soon
-                                  ? "font-semibold text-klink-warning"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {soon && "⚠ "}
-                              {expiryLabel(ticket.expiresAt, now)}
-                            </p>
+                            {soon ? (
+                              <span className="mt-1 inline-flex items-center rounded-full bg-klink-ink px-2.5 py-0.5 text-xs font-semibold text-white">
+                                {expiryLabel(ticket.expiresAt, now)}
+                              </span>
+                            ) : (
+                              <p className="text-xs mt-0.5 text-klink-ink">
+                                {expiryLabel(ticket.expiresAt, now)}
+                              </p>
+                            )}
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-sm text-muted-foreground tabular-nums">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-sm text-klink-ink tabular-nums font-medium">
                               {formatEur(ticket.priceTier.price)}
                             </span>
-                            <span className="inline-flex h-9 px-3 items-center rounded-full bg-klink-lime text-klink-ink text-xs font-semibold">
-                              Apri QR
-                            </span>
+                            <ChevronRight aria-hidden className="h-5 w-5 text-klink-ink" />
                           </div>
                         </Link>
                         {/* Wallet: il QR anche offline, senza aprire il sito */}
                         {walletEnabled && (
-                          <div className="px-4 pb-3 flex justify-start [&>div]:justify-start">
+                          <div className="mt-2 flex justify-start [&>div]:justify-start">
                             <WalletButtons
                               qrToken={ticket.qrToken}
                               appleEnabled={appleWallet}
@@ -226,10 +219,10 @@ export default async function CustomerHomePage() {
           </div>
         )}
 
-        {/* Storico */}
+        {/* Storico: UNICO punto d'accesso a ordini e ticket passati */}
         <section className="pt-2 border-t">
           <Button asChild variant="outline" className="w-full">
-            <Link href="/profilo">Storico completo: ordini e ticket passati</Link>
+            <Link href="/profilo">Storico ordini e ticket</Link>
           </Button>
         </section>
       </div>

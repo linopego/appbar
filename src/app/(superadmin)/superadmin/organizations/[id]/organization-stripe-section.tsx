@@ -156,12 +156,12 @@ export function OrganizationStripeSection({
   const repairBlock = needsRepair && (
     <div className="rounded-lg border border-yellow-900/40 bg-yellow-900/20 p-3 space-y-2">
       <p className="text-xs text-yellow-400/90">
-        ⚠️ Incasso con carta non attivo: Stripe rifiuta i pagamenti su questo account.
+        Incasso con carta non attivo: Stripe rifiuta i pagamenti su questo account.
         «Ripara» richiede le capabilities mancanti (card_payments, transfers).
       </p>
       {repairDone ? (
         <p className="text-xs text-green-400">
-          ✓ Capabilities richieste. Ora rigenera il link onboarding e invialo al cliente:
+          Capabilities richieste. Ora rigenera il link onboarding e invialo al cliente:
           Stripe potrebbe chiedere dati aggiuntivi prima di attivarle.
         </p>
       ) : (
@@ -235,7 +235,7 @@ export function OrganizationStripeSection({
                   {copied ? "✓ Copiato" : "Copia negli appunti"}
                 </button>
                 <p className="text-xs text-yellow-400/90">
-                  ⚠️ Il link scade dopo pochi minuti: invialo subito. Se scade, generane uno
+                  Il link scade dopo pochi minuti: invialo subito. Se scade, generane uno
                   nuovo.
                 </p>
               </div>

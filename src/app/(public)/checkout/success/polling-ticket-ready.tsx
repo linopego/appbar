@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,7 @@ export function PollingTicketReady({ orderId }: PollingTicketReadyProps) {
 
   return (
     <div className="space-y-4 text-center">
-      <div className="text-5xl">⚠</div>
+      <AlertTriangle aria-hidden className="mx-auto h-12 w-12 text-klink-warning" />
       <p className="font-semibold text-lg">Conferma in attesa</p>
       <p className="text-muted-foreground text-sm">
         Il pagamento potrebbe essere ancora in elaborazione. Controlla il tuo profilo tra qualche

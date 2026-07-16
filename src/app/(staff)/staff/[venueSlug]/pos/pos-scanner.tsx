@@ -8,6 +8,7 @@ import { messageForCode } from "@/lib/pos/messages";
 import { playSound, vibrate } from "@/lib/pos/feedback";
 import { formatEur } from "@/lib/utils/money";
 import { KlinkLogo } from "@/components/brand/logo";
+import { CameraOff } from "lucide-react";
 import { pressAffirmativeOnLime, pressNegative } from "@/lib/ui/press";
 import type { OperatorRole } from "@/lib/auth/staff";
 
@@ -269,7 +270,7 @@ export function PosScanner({ venueName, operatorName, operatorRole, venueSlug }:
           <div className="text-center px-6 space-y-5 max-w-sm w-full">
             {cameraError && (
               <div className="space-y-2">
-                <div className="text-4xl">📷</div>
+                <CameraOff aria-hidden className="mx-auto h-10 w-10 text-zinc-400" />
                 <p className="text-base text-zinc-300 leading-relaxed">{cameraError}</p>
               </div>
             )}

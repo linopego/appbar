@@ -178,7 +178,7 @@ export default async function OrganizationDetailPage({
           </div>
           {!chargesEnabled && organization.venues.length > 0 && (
             <p className="text-xs text-yellow-400/90 bg-yellow-900/20 border border-yellow-900/40 rounded-lg px-3 py-2">
-              ⚠️ Pagamenti non attivi: i clienti non possono ancora acquistare nei venue di
+              Pagamenti non attivi: i clienti non possono ancora acquistare nei venue di
               questa organizzazione. Completa prima l&apos;onboarding Stripe.
             </p>
           )}
