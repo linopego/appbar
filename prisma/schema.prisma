@@ -167,6 +167,8 @@ model Order {
 
   @@index([customerId, createdAt])
   @@index([venueId, createdAt])
+  // Serata live + corrispettivi: il venduto si interroga per data di pagamento
+  @@index([venueId, paidAt])
   @@index([status])
 }
 
@@ -209,6 +211,8 @@ model Ticket {
   @@index([qrToken])
   @@index([customerId, status])
   @@index([venueId, status])
+  // Serata live + corrispettivi: il consumato si interroga per data di consumo
+  @@index([venueId, consumedAt])
   @@index([orderId])
   @@index([expiresAt])
 }

@@ -10,6 +10,7 @@ interface Props {
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", exact: true },
+  { href: "/admin/live", label: "Serata live" },
   { href: "/admin/ordini", label: "Ordini" },
   { href: "/admin/rimborsi", label: "Rimborsi" },
   { href: "/admin/listino", label: "Listino" },
