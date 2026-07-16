@@ -3,7 +3,6 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { KlinkLogo } from "@/components/brand/logo";
 import { isPaymentsConfigured } from "@/lib/checkout/connect";
 import { VenuePurchase } from "./venue-purchase";
 
@@ -84,11 +83,9 @@ export default async function VenuePage({ params }: VenuePageProps) {
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {/* Header compatto: mark + nome del locale, senza rubare spazio */}
-        <div className="flex items-center gap-2.5 mb-5">
-          <KlinkLogo variant="mark" size={24} />
-          <h1 className="text-lg font-semibold truncate">{venue.name}</h1>
-        </div>
+        {/* Header compatto: solo il nome del locale (il logo sta già
+            nell'header globale, il mark non è decorazione riempitiva) */}
+        <h1 className="text-lg font-semibold truncate mb-5">{venue.name}</h1>
 
         <VenuePurchase
           venueSlug={venue.slug}

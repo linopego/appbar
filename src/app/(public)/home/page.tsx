@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { WalletButtons } from "@/components/wallet/wallet-buttons";
 import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet/config";
+import { InstallAppCard } from "./install-app-card";
+import { HelpCard } from "./help-card";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "I tuoi ticket" };
@@ -224,6 +226,12 @@ export default async function CustomerHomePage() {
           <Button asChild variant="outline" className="w-full">
             <Link href="/profilo">Storico ordini e ticket</Link>
           </Button>
+        </section>
+
+        {/* Utilità in coda: funzioni, non decorazioni. Visivamente secondarie */}
+        <section className="space-y-3">
+          <InstallAppCard />
+          <HelpCard />
         </section>
       </div>
     </main>
