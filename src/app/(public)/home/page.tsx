@@ -13,6 +13,8 @@ import { pressAttrs, pressBase } from "@/lib/ui/press";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { KlinkLogo } from "@/components/brand/logo";
+import { WalletButtons } from "@/components/wallet/wallet-buttons";
+import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet/config";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "I tuoi ticket" };
@@ -72,6 +74,11 @@ export default async function CustomerHomePage() {
   const groups = [...byVenue.values()];
 
   const firstName = session.user.name?.split(" ")[0];
+
+  // Wallet: feature flag via env, senza configurazione i badge non compaiono
+  const appleWallet = isAppleWalletConfigured();
+  const googleWallet = isGoogleWalletConfigured();
+  const walletEnabled = appleWallet || googleWallet;
 
   return (
     <main className="min-h-screen bg-background">
@@ -170,10 +177,10 @@ export default async function CustomerHomePage() {
                   {group.tickets.map((ticket) => {
                     const soon = isExpiringSoon(ticket.expiresAt, now);
                     return (
-                      <li key={ticket.id}>
+                      <li key={ticket.id} className="rounded-2xl border bg-card">
                         <Link
                           href={`/ticket/${ticket.qrToken}`}
-                          className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 hover:shadow-card transition-shadow"
+                          className="flex items-center justify-between gap-3 p-4 hover:shadow-card transition-shadow rounded-2xl"
                         >
                           <div className="min-w-0">
                             <p className="font-display font-semibold truncate">
@@ -199,6 +206,17 @@ export default async function CustomerHomePage() {
                             </span>
                           </div>
                         </Link>
+                        {/* Wallet: il QR anche offline, senza aprire il sito */}
+                        {walletEnabled && (
+                          <div className="px-4 pb-3 flex justify-start [&>div]:justify-start">
+                            <WalletButtons
+                              qrToken={ticket.qrToken}
+                              appleEnabled={appleWallet}
+                              googleEnabled={googleWallet}
+                              badgeHeight={36}
+                            />
+                          </div>
+                        )}
                       </li>
                     );
                   })}

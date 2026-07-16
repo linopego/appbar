@@ -1,10 +1,16 @@
 import QRCode from "qrcode";
 
-function ticketUrl(qrToken: string): string {
+// LA stringa codificata nel QR del ticket: URL della pagina pubblica.
+// È ciò che il POS scansiona (extractTicketToken accetta questa forma).
+// UNICA fonte: anche i pass Apple/Google Wallet DEVONO usare questa funzione,
+// così il POS non vede alcuna differenza tra QR del sito e QR del wallet.
+export function ticketQrPayload(qrToken: string): string {
   const base =
     process.env["NEXT_PUBLIC_APP_URL"] ?? process.env["NEXTAUTH_URL"] ?? "http://localhost:3000";
   return `${base}/ticket/${qrToken}`;
 }
+
+const ticketUrl = ticketQrPayload;
 
 export async function renderQrDataUrl(
   qrToken: string,

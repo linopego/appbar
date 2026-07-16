@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TicketCard } from "@/components/shared/ticket-card";
 import { computeTicketStatus } from "@/lib/tickets/status";
+import { WalletButtons } from "@/components/wallet/wallet-buttons";
+import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet/config";
 import { TicketLiveStatus } from "./ticket-live-status";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +67,18 @@ export default async function TicketPage({ params }: PageProps) {
         <div className="flex-1 flex items-center justify-center py-8">
           <TicketCard ticket={ticket} mode="fullscreen" />
         </div>
+
+        {/* Wallet: QR disponibile anche offline, senza aprire il sito.
+            Feature flag: senza env i bottoni non vengono proprio renderizzati */}
+        {status === "ACTIVE" && (isAppleWalletConfigured() || isGoogleWalletConfigured()) && (
+          <div className="pb-4">
+            <WalletButtons
+              qrToken={ticket.qrToken}
+              appleEnabled={isAppleWalletConfigured()}
+              googleEnabled={isGoogleWalletConfigured()}
+            />
+          </div>
+        )}
 
         <div className="text-center text-xs text-muted-foreground space-y-1">
           <div>Valido fino al {formatDate(ticket.expiresAt)}</div>
