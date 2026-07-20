@@ -34,6 +34,7 @@ export default async function ModificaFasciaPage({
         initialName={tier.name}
         initialPrice={tier.price.toString()}
         initialSortOrder={tier.sortOrder}
+        initialVatRate={tier.vatRate?.toString() ?? ""}
       />
     </div>
   );

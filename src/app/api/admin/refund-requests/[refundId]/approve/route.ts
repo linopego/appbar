@@ -3,6 +3,7 @@ import { getAdminOrManagerSession } from "@/lib/auth/admin-or-manager";
 import { db } from "@/lib/db";
 import { processRefund } from "@/lib/refunds/process";
 import { sendRefundApprovedEmail } from "@/lib/email/refund-emails";
+import { enqueueAndTryVoidDocument } from "@/lib/fiscal/emit";
 
 // Approvazione rimborso in tre fasi (vedi src/lib/refunds/process.ts):
 // 1. claim atomico PENDING/PROCESSING/FAILED → PROCESSING + lock FOR UPDATE dei ticket
@@ -110,6 +111,10 @@ export async function POST(
       managerNote: body.managerNote?.trim() || null,
     }).catch(console.error);
   }
+
+  // Fiscale: storno best-effort e ASINCRONO (il rimborso non attende né
+  // fallisce per il fiscale; il cron di recupero fa da rete di sicurezza)
+  void enqueueAndTryVoidDocument(refund.id).catch(console.error);
 
   return NextResponse.json({ ok: true });
 }

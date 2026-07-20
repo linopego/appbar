@@ -33,14 +33,27 @@ function tierRowsHtml(aggregate: TierAggregate, totalLabel: string): string {
     </table>`;
 }
 
+// Documenti fiscali in sofferenza (venue con emissione attiva): errori
+// definitivi o in attesa da più di 24 ore.
+export interface FiscalAlert {
+  failedCount: number;
+  stalePendingCount: number;
+}
+
+export function hasFiscalAlert(alert: FiscalAlert | null | undefined): boolean {
+  return Boolean(alert && (alert.failedCount > 0 || alert.stalePendingCount > 0));
+}
+
 export function dailyReportHtml({
   venueName,
   day,
   report,
+  fiscalAlert,
 }: {
   venueName: string;
   day: string; // YYYY-MM-DD (giornata solare Europe/Rome)
   report: CorrispettiviReport;
+  fiscalAlert?: FiscalAlert | null;
 }): string {
   const refundLine =
     report.refunded.count > 0
@@ -49,8 +62,24 @@ export function dailyReportHtml({
          </p>`
       : "";
 
+  const fiscalAlertLine = hasFiscalAlert(fiscalAlert)
+    ? `<p style="margin: 0 0 16px; font-size: 14px; color: ${EMAIL_COLORS.error}; font-weight: 600;">
+         Documenti fiscali da controllare: ${[
+           fiscalAlert!.failedCount > 0
+             ? `${fiscalAlert!.failedCount} in errore definitivo`
+             : null,
+           fiscalAlert!.stalePendingCount > 0
+             ? `${fiscalAlert!.stalePendingCount} in attesa da oltre 24 ore`
+             : null,
+         ]
+           .filter(Boolean)
+           .join(", ")}. Apri gli ordini nel pannello per riprovare l'emissione.
+       </p>`
+    : "";
+
   const bodyHtml = `
     <h1 style="margin: 0 0 4px; font-size: 22px; color: ${EMAIL_COLORS.ink};">Corrispettivi del ${escapeHtml(day)}</h1>
+    ${fiscalAlertLine}
     <p style="margin: 0 0 24px; color: ${EMAIL_COLORS.inkSoft}; font-size: 14px; line-height: 1.5;">
       ${escapeHtml(venueName)} — giornata solare italiana. Due basi distinte:
       il consulente indica quale registrare.
@@ -79,15 +108,17 @@ export async function sendDailyReportEmail({
   venueName,
   day,
   report,
+  fiscalAlert,
 }: {
   to: string;
   venueName: string;
   day: string;
   report: CorrispettiviReport;
+  fiscalAlert?: FiscalAlert | null;
 }): Promise<void> {
   await sendEmail({
     to,
     subject: `Corrispettivi ${venueName} — ${day}`,
-    html: dailyReportHtml({ venueName, day, report }),
+    html: dailyReportHtml({ venueName, day, report, fiscalAlert: fiscalAlert ?? null }),
   });
 }

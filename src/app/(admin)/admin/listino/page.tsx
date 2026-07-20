@@ -35,6 +35,7 @@ export default async function AdminListinoPage() {
             <tr className="border-b border-zinc-100 text-xs text-zinc-400 uppercase tracking-wide">
               <th className="text-left px-4 py-3">Nome</th>
               <th className="text-right px-4 py-3">Prezzo</th>
+              <th className="text-right px-4 py-3 hidden sm:table-cell">IVA</th>
               <th className="text-right px-4 py-3 hidden sm:table-cell">Ordine</th>
               <th className="text-left px-4 py-3">Stato</th>
               <th className="text-right px-4 py-3">Azioni</th>
@@ -45,6 +46,9 @@ export default async function AdminListinoPage() {
               <tr key={tier.id} className={`border-b border-zinc-50 transition-colors ${tier.active ? "" : "opacity-50"}`}>
                 <td className="px-4 py-3 font-medium text-zinc-900">{tier.name}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{formatEur(tier.price.toString())}</td>
+                <td className="px-4 py-3 text-right text-zinc-500 hidden sm:table-cell tabular-nums">
+                  {tier.vatRate !== null ? `${tier.vatRate.toString()}%` : "—"}
+                </td>
                 <td className="px-4 py-3 text-right text-zinc-500 hidden sm:table-cell">{tier.sortOrder}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tier.active ? "bg-green-100 text-green-800" : "bg-zinc-100 text-zinc-500"}`}>
@@ -66,7 +70,7 @@ export default async function AdminListinoPage() {
             ))}
             {tiers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-zinc-400">Nessuna fascia ancora. Creane una!</td>
+                <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">Nessuna fascia ancora. Creane una!</td>
               </tr>
             )}
           </tbody>

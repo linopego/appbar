@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/auth/staff";
+import { db } from "@/lib/db";
 import {
   getCorrispettivi,
+  getFiscalReconciliation,
   parseReportDays,
   rangeInTimezone,
 } from "@/lib/reports/corrispettivi";
 import { CorrispettiviView } from "@/components/reports/corrispettivi-view";
+import { FiscalReconciliationView } from "@/components/reports/fiscal-reconciliation-view";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Corrispettivi — Admin" };
@@ -23,7 +26,17 @@ export default async function CorrispettiviPage({
   const sp = await searchParams;
   const now = new Date();
   const { da, a } = parseReportDays(sp.da, sp.a, now);
-  const report = await getCorrispettivi(session.venueId, rangeInTimezone(da, a));
+  const range = rangeInTimezone(da, a);
+  const report = await getCorrispettivi(session.venueId, range);
+
+  // Riconciliazione fiscale solo se il venue emette (o ha emesso) documenti
+  const venue = await db.venue.findUnique({
+    where: { id: session.venueId },
+    select: { fiscalEnabled: true },
+  });
+  const reconciliation = venue?.fiscalEnabled
+    ? await getFiscalReconciliation(session.venueId, range, report.sold.total)
+    : null;
 
   const csvHref = `/api/admin/reports/corrispettivi/export?da=${da}&a=${a}`;
   const singleDay = da === a;
@@ -73,6 +86,14 @@ export default async function CorrispettiviPage({
           Esporta CSV
         </a>
       </form>
+
+      {reconciliation && (
+        <FiscalReconciliationView
+          reconciliation={reconciliation}
+          soldTotal={report.sold.total}
+          theme="light"
+        />
+      )}
 
       <CorrispettiviView report={report} theme="light" />
     </div>

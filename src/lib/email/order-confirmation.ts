@@ -13,6 +13,13 @@ export async function sendOrderConfirmationEmail(orderId: string) {
       venue: true,
       items: { include: { priceTier: true } },
       tickets: { include: { priceTier: { select: { name: true } } } },
+      // Documento commerciale: il link compare solo se già emesso all'invio
+      // (di norma l'emissione è successiva; la pagina ordine lo mostra sempre)
+      fiscalDocuments: {
+        where: { type: "SALE", status: "CONFIRMED" },
+        select: { pdfUrl: true },
+        take: 1,
+      },
     },
   });
 
@@ -55,6 +62,9 @@ export async function sendOrderConfirmationEmail(orderId: string) {
     expiresAt: order.tickets[0]?.expiresAt ?? new Date(),
     orderUrl,
     ...(walletLinks ? { walletLinks } : {}),
+    ...(order.fiscalDocuments[0]?.pdfUrl
+      ? { receiptPdfUrl: order.fiscalDocuments[0].pdfUrl }
+      : {}),
   });
 
   const subject = `I tuoi ticket — ${order.venue.name}`;

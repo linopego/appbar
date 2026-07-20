@@ -6,7 +6,11 @@ import {
   hasMovements,
   yesterdayInTimezone,
 } from "@/lib/reports/corrispettivi";
-import { sendDailyReportEmail } from "@/lib/email/daily-report";
+import {
+  hasFiscalAlert,
+  sendDailyReportEmail,
+  type FiscalAlert,
+} from "@/lib/email/daily-report";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +37,7 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       name: true,
+      fiscalEnabled: true,
       operators: {
         where: { role: "MANAGER", active: true, email: { not: null } },
         select: { email: true },
@@ -41,11 +46,30 @@ export async function GET(req: NextRequest) {
   });
 
   const results: { venue: string; sent: number; note?: string }[] = [];
+  const dayAgo = new Date(Date.now() - 24 * 3600_000);
 
   for (const venue of venues) {
     try {
       const report = await getCorrispettivi(venue.id, range);
-      if (!hasMovements(report)) {
+
+      // Alert fiscale: FAILED definitivi o PENDING da oltre 24h (solo venue
+      // con emissione attiva). Fa partire l'email anche senza movimenti.
+      let fiscalAlert: FiscalAlert | null = null;
+      if (venue.fiscalEnabled) {
+        const [failedCount, stalePendingCount] = await Promise.all([
+          db.fiscalDocument.count({ where: { venueId: venue.id, status: "FAILED" } }),
+          db.fiscalDocument.count({
+            where: {
+              venueId: venue.id,
+              status: { in: ["PENDING", "SUBMITTED"] },
+              createdAt: { lt: dayAgo },
+            },
+          }),
+        ]);
+        fiscalAlert = { failedCount, stalePendingCount };
+      }
+
+      if (!hasMovements(report) && !hasFiscalAlert(fiscalAlert)) {
         results.push({ venue: venue.name, sent: 0, note: "nessun movimento" });
         continue;
       }
@@ -61,7 +85,7 @@ export async function GET(req: NextRequest) {
       let sent = 0;
       for (const to of recipients) {
         try {
-          await sendDailyReportEmail({ to, venueName: venue.name, day, report });
+          await sendDailyReportEmail({ to, venueName: venue.name, day, report, fiscalAlert });
           sent += 1;
         } catch (error) {
           console.error(`[Cron corrispettivi] invio fallito per ${venue.name} → ${to}:`, error);

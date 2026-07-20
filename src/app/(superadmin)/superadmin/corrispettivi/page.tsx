@@ -4,10 +4,12 @@ import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import {
   getCorrispettivi,
+  getFiscalReconciliation,
   parseReportDays,
   rangeInTimezone,
 } from "@/lib/reports/corrispettivi";
 import { CorrispettiviView } from "@/components/reports/corrispettivi-view";
+import { FiscalReconciliationView } from "@/components/reports/fiscal-reconciliation-view";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Corrispettivi — Super Admin" };
@@ -25,7 +27,7 @@ export default async function SuperadminCorrispettiviPage({
   const scope = orgScopeWhere(session);
   const venues = await db.venue.findMany({
     where: scope.venue,
-    select: { id: true, name: true },
+    select: { id: true, name: true, fiscalEnabled: true },
     orderBy: { name: "asc" },
   });
 
@@ -38,6 +40,10 @@ export default async function SuperadminCorrispettiviPage({
   const report = selectedVenue
     ? await getCorrispettivi(selectedVenue.id, rangeInTimezone(da, a))
     : null;
+  const reconciliation =
+    selectedVenue?.fiscalEnabled && report
+      ? await getFiscalReconciliation(selectedVenue.id, rangeInTimezone(da, a), report.sold.total)
+      : null;
 
   const csvHref = selectedVenue
     ? `/api/superadmin/reports/corrispettivi/export?venueId=${selectedVenue.id}&da=${da}&a=${a}`
@@ -112,6 +118,13 @@ export default async function SuperadminCorrispettiviPage({
             <p className="text-sm text-zinc-400">
               {selectedVenue.name} — periodo {da === a ? da : `${da} → ${a}`}
             </p>
+            {reconciliation && (
+              <FiscalReconciliationView
+                reconciliation={reconciliation}
+                soldTotal={report.sold.total}
+                theme="dark"
+              />
+            )}
             <CorrispettiviView report={report} theme="dark" />
           </>
         ) : (

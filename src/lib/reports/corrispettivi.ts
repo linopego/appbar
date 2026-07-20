@@ -247,6 +247,79 @@ export function buildCorrispettiviCsv(report: CorrispettiviReport): string {
   return lines.join("\r\n");
 }
 
+// ── Riconciliazione fiscale ─────────────────────────────────────────────────
+
+export interface FiscalReconciliation {
+  // Somma dei documenti di VENDITA CONFERMATI per ordini pagati nel periodo
+  confirmedTotal: string; // EUR
+  confirmedCount: number;
+  pendingCount: number; // PENDING/SUBMITTED (in attesa)
+  failedCount: number; // errori definitivi
+  missingCount: number; // ordini venduti senza alcun documento
+  // sold.total − confirmedTotal: "0.00" quando tutto è stato emesso
+  difference: string; // EUR
+}
+
+// Confronta il VENDUTO del periodo (per data di pagamento) con i documenti
+// commerciali emessi per quegli stessi ordini: la differenza evidenzia cosa
+// manca ancora all'appello (in attesa, in errore o mai accodato).
+export function reconcileFiscal(
+  soldTotal: string,
+  docs: { status: string; total: Prisma.Decimal | string }[],
+  soldOrderCount: number
+): FiscalReconciliation {
+  let confirmed = new Prisma.Decimal(0);
+  let confirmedCount = 0;
+  let pendingCount = 0;
+  let failedCount = 0;
+  for (const doc of docs) {
+    if (doc.status === "CONFIRMED") {
+      confirmed = confirmed.plus(new Prisma.Decimal(doc.total));
+      confirmedCount += 1;
+    } else if (doc.status === "FAILED") {
+      failedCount += 1;
+    } else {
+      pendingCount += 1;
+    }
+  }
+  return {
+    confirmedTotal: confirmed.toFixed(2),
+    confirmedCount,
+    pendingCount,
+    failedCount,
+    missingCount: Math.max(0, soldOrderCount - docs.length),
+    difference: new Prisma.Decimal(soldTotal).minus(confirmed).toFixed(2),
+  };
+}
+
+export async function getFiscalReconciliation(
+  venueId: string,
+  range: DayRange,
+  soldTotal: string
+): Promise<FiscalReconciliation> {
+  const [docs, soldOrderCount] = await Promise.all([
+    db.fiscalDocument.findMany({
+      where: {
+        venueId,
+        type: "SALE",
+        order: {
+          status: { in: [...SOLD_STATUSES] },
+          paidAt: { gte: range.start, lt: range.end },
+        },
+      },
+      select: { status: true, total: true },
+    }),
+    db.order.count({
+      where: {
+        venueId,
+        status: { in: [...SOLD_STATUSES] },
+        paidAt: { gte: range.start, lt: range.end },
+      },
+    }),
+  ]);
+  return reconcileFiscal(soldTotal, docs, soldOrderCount);
+}
+
 // ── Query ───────────────────────────────────────────────────────────────────
 
 // VENDUTO lordo per data di pagamento: contano anche gli ordini poi rimborsati
