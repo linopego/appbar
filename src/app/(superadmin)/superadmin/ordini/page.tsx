@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
+import { FiscalStatusBadge, type FiscalBadgeStatus } from "@/components/shared/fiscal-status-badge";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,7 @@ export default async function SuperAdminOrdiniPage({
         customer: { select: { email: true, firstName: true, lastName: true } },
         venue: { select: { name: true } },
         _count: { select: { tickets: true } },
+        fiscalDocuments: { where: { type: "SALE" }, select: { status: true } },
       },
       orderBy: { paidAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
@@ -207,6 +209,7 @@ export default async function SuperAdminOrdiniPage({
                 <th className="text-right px-4 py-3 hidden md:table-cell">Ticket</th>
                 <th className="text-right px-4 py-3">Totale</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Stato</th>
+                <th className="text-left px-4 py-3 hidden lg:table-cell">Fiscale</th>
               </tr>
             </thead>
             <tbody>
@@ -246,11 +249,21 @@ export default async function SuperAdminOrdiniPage({
                       {STATUS_LABELS[order.status] ?? order.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    {order.fiscalDocuments[0] ? (
+                      <FiscalStatusBadge
+                        status={order.fiscalDocuments[0].status as FiscalBadgeStatus}
+                        theme="dark"
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-600">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
+                  <td colSpan={7} className="px-4 py-10 text-center text-zinc-500">
                     Nessun ordine trovato
                   </td>
                 </tr>

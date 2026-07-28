@@ -43,6 +43,11 @@ model Venue {
   refundBlockedTimezone String   @default("Europe/Rome")
   // Email giornaliera dei corrispettivi (07:00 Europe/Rome) ai manager
   dailyReportEnabled    Boolean  @default(true)
+  // Modulo fiscale (documento commerciale via provider API): default SPENTO.
+  // fiscalConfig = riferimenti dell'esercente presso il provider; gli
+  // eventuali segreti vivono SOLO cifrati (AES-GCM) nel campo encryptedSecrets
+  fiscalEnabled         Boolean  @default(false)
+  fiscalConfig          Json?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -51,6 +56,7 @@ model Venue {
   operators    Operator[]
   orders       Order[]
   tickets      Ticket[]
+  fiscalDocuments FiscalDocument[]
 
   @@index([organizationId])
 }
@@ -60,6 +66,8 @@ model PriceTier {
   venueId   String
   name      String // "Acqua", "Analcolico", "Birra", "Red Bull", "Drink", "Drink Premium"
   price     Decimal  @db.Decimal(10, 2)
+  // Aliquota IVA (es. 10.00, 22.00) — obbligatoria per abilitare il fiscale
+  vatRate   Decimal? @db.Decimal(4, 2)
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -166,6 +174,7 @@ model Order {
   tickets  Ticket[]
   refunds  Refund[]
   items    OrderItem[]
+  fiscalDocuments FiscalDocument[]
 
   @@index([customerId, createdAt])
   @@index([venueId, createdAt])
@@ -219,6 +228,51 @@ model Ticket {
   @@index([expiresAt])
 }
 
+// Documento commerciale (scontrino) emesso via provider API per conto del
+// locale. Il flusso di vendita NON dipende mai da queste righe: nascono
+// DOPO il commit di ordine+ticket e vengono lavorate in modo asincrono.
+model FiscalDocument {
+  id             String               @id @default(cuid())
+  orderId        String
+  refundId       String?              @unique // un VOID per rimborso
+  venueId        String
+  type           FiscalDocumentType
+  status         FiscalDocumentStatus @default(PENDING)
+  attempts       Int                  @default(0)
+  lastError      String?              @db.Text
+  providerDocId  String?
+  protocolNumber String?
+  pdfUrl         String?
+  // Importo del documento (vendita = totale ordine; VOID = importo rimborso)
+  total          Decimal              @db.Decimal(10, 2)
+  // Snapshot delle righe al momento della creazione (nome, qty, prezzo, IVA)
+  lines          Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  order  Order   @relation(fields: [orderId], references: [id])
+  refund Refund? @relation(fields: [refundId], references: [id])
+  venue  Venue   @relation(fields: [venueId], references: [id])
+
+  // NB: l'unicità "un solo SALE per ordine" è un indice PARZIALE creato in
+  // migration SQL (WHERE type = 'SALE'): Prisma non sa esprimerlo.
+  @@index([venueId, status])
+  @@index([orderId])
+  @@index([status, updatedAt])
+}
+
+enum FiscalDocumentType {
+  SALE
+  VOID
+}
+
+enum FiscalDocumentStatus {
+  PENDING // in coda, da emettere (o ritentare)
+  SUBMITTED // inviato al provider, esito non ancora definitivo
+  CONFIRMED // emesso e confermato
+  FAILED // fallito definitivamente (errore non ritentabile o tentativi esauriti)
+}
+
 model Refund {
   id              String           @id @default(cuid())
   orderId         String
@@ -236,6 +290,7 @@ model Refund {
   processedByType ProcessedByType?
 
   order Order @relation(fields: [orderId], references: [id])
+  fiscalDocument FiscalDocument?
 
   @@index([orderId])
   @@index([status])

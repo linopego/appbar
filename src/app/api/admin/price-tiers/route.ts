@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const session = await requireStaffRole(["MANAGER"]).catch(() => null);
   if (!session) return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 401 });
 
-  let body: { name?: unknown; price?: unknown; sortOrder?: unknown; active?: unknown };
+  let body: { name?: unknown; price?: unknown; sortOrder?: unknown; active?: unknown; vatRate?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -40,6 +40,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Aliquota IVA opzionale (richiesta solo per attivare il modulo fiscale)
+  let vatRateDecimal: Decimal | null = null;
+  if (body.vatRate !== undefined && body.vatRate !== null && body.vatRate !== "") {
+    try {
+      vatRateDecimal = new Decimal(String(body.vatRate));
+      if (vatRateDecimal.lt(0) || vatRateDecimal.gt(99.99)) throw new Error();
+    } catch {
+      return NextResponse.json({ ok: false, error: "vatRate deve essere una percentuale tra 0 e 99.99" }, { status: 400 });
+    }
+  }
+
   try {
     const priceTier = await db.priceTier.create({
       data: {
@@ -48,6 +59,7 @@ export async function POST(req: NextRequest) {
         price: priceDecimal,
         sortOrder: sortOrder !== undefined ? Number(sortOrder) : 100,
         active: active !== undefined ? Boolean(active) : true,
+        vatRate: vatRateDecimal,
       },
     });
 
@@ -56,7 +68,7 @@ export async function POST(req: NextRequest) {
       action: "PRICE_TIER_CREATED",
       targetType: "PriceTier",
       targetId: priceTier.id,
-      payload: { name: priceTier.name, price: priceDecimal.toString(), sortOrder: priceTier.sortOrder, active: priceTier.active },
+      payload: { name: priceTier.name, price: priceDecimal.toString(), sortOrder: priceTier.sortOrder, active: priceTier.active, vatRate: vatRateDecimal?.toString() ?? null },
     });
 
     return NextResponse.json({ ok: true, data: { id: priceTier.id } }, { status: 201 });

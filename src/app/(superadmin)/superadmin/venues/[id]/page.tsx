@@ -5,7 +5,9 @@ import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
 import { VenueToggleActiveButton } from "./toggle-active-button";
+import { FiscalConfigForm } from "./fiscal-config-form";
 import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
+import type { FiscalVenueConfig } from "@/lib/fiscal/types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,8 @@ export default async function VenueDetailPage({
   });
 
   if (!venue) notFound();
+
+  const fiscalConfig = (venue.fiscalConfig ?? null) as FiscalVenueConfig | null;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 px-4 py-10">
@@ -109,6 +113,56 @@ export default async function VenueDetailPage({
           </div>
         </div>
 
+        {/* Fiscale: stato per tutti, configurazione SOLO PLATFORM */}
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
+              Fiscale
+            </h2>
+            <span
+              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                venue.fiscalEnabled
+                  ? "bg-green-900/50 text-green-400"
+                  : "bg-zinc-800 text-zinc-500"
+              }`}
+            >
+              {venue.fiscalEnabled ? "Emissione attiva" : "Emissione disattivata"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-zinc-400 text-xs mb-1">Identificativo fiscale</p>
+              <p className="text-zinc-100 font-mono">{fiscalConfig?.fiscalId ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-400 text-xs mb-1">ID configurazione provider</p>
+              <p className="text-zinc-100 font-mono">{fiscalConfig?.configurationId ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-400 text-xs mb-1">Segreti esercente</p>
+              <p className="text-zinc-100">
+                {fiscalConfig?.encryptedSecrets ? "Presenti (cifrati)" : "Assenti"}
+              </p>
+            </div>
+          </div>
+
+          {session.role === "PLATFORM" ? (
+            <div className="border-t border-zinc-800 pt-4">
+              <FiscalConfigForm
+                venueId={id}
+                initialFiscalId={fiscalConfig?.fiscalId ?? ""}
+                initialConfigurationId={fiscalConfig?.configurationId ?? ""}
+                hasSecrets={Boolean(fiscalConfig?.encryptedSecrets)}
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-500">
+              La configurazione fiscale è gestita dall&apos;amministratore di piattaforma.
+            </p>
+          )}
+        </div>
+
         {/* Operators */}
         <div className="space-y-3">
           <h2 className="text-base font-semibold">
@@ -179,6 +233,7 @@ export default async function VenueDetailPage({
                 <tr className="border-b border-zinc-800 text-xs text-zinc-400 uppercase tracking-wide">
                   <th className="text-left px-4 py-3">Nome</th>
                   <th className="text-right px-4 py-3">Prezzo</th>
+                  <th className="text-right px-4 py-3">IVA</th>
                   <th className="text-left px-4 py-3">Stato</th>
                 </tr>
               </thead>
@@ -191,6 +246,9 @@ export default async function VenueDetailPage({
                     <td className="px-4 py-3 text-zinc-100">{tier.name}</td>
                     <td className="px-4 py-3 text-right text-zinc-300 tabular-nums">
                       {formatEur(tier.price.toString())}
+                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-400 tabular-nums">
+                      {tier.vatRate !== null ? `${tier.vatRate.toString()}%` : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -208,7 +266,7 @@ export default async function VenueDetailPage({
                 {venue.priceTiers.length === 0 && (
                   <tr>
                     <td
-                      colSpan={3}
+                      colSpan={4}
                       className="px-4 py-8 text-center text-zinc-500"
                     >
                       Nessuna fascia prezzo.

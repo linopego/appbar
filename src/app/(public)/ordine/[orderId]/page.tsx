@@ -49,6 +49,11 @@ export default async function OrderPage({ params }: PageProps) {
         orderBy: [{ priceTier: { sortOrder: "asc" } }, { createdAt: "asc" }],
       },
       refunds: { orderBy: { requestedAt: "desc" }, take: 1 },
+      fiscalDocuments: {
+        where: { type: "SALE", status: "CONFIRMED" },
+        select: { pdfUrl: true },
+        take: 1,
+      },
     },
   });
 
@@ -123,6 +128,8 @@ export default async function OrderPage({ params }: PageProps) {
   const expiresAt = order.tickets[0]?.expiresAt ?? null;
   const hasUsableTickets = order.tickets.some((t) => computeTicketStatus(t) === "ACTIVE");
   const latestRefund = order.refunds[0] ?? null;
+  // Documento commerciale emesso: link discreto al PDF dello scontrino
+  const receiptPdfUrl = order.fiscalDocuments[0]?.pdfUrl ?? null;
 
   return (
     <main className="min-h-screen bg-background">
@@ -143,6 +150,18 @@ export default async function OrderPage({ params }: PageProps) {
               {order.tickets.length} ticket — totale {formatEur(order.totalAmount)}
             </div>
             {expiresAt && <div>Validi fino al {formatDate(expiresAt)}</div>}
+            {receiptPdfUrl && (
+              <div>
+                <a
+                  href={receiptPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  Scarica lo scontrino
+                </a>
+              </div>
+            )}
           </div>
         </div>
 

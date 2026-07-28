@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/auth/staff";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
+import { FiscalStatusBadge, type FiscalBadgeStatus } from "@/components/shared/fiscal-status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ordini — Admin" };
@@ -58,19 +59,25 @@ export default async function AdminOrdiniPage({
     ...(email ? { customer: { email: { contains: email, mode: "insensitive" as never } } } : {}),
   };
 
-  const [orders, total] = await Promise.all([
+  const [orders, total, venue] = await Promise.all([
     db.order.findMany({
       where,
       include: {
         customer: { select: { email: true, firstName: true, lastName: true } },
         _count: { select: { tickets: true } },
+        fiscalDocuments: { where: { type: "SALE" }, select: { status: true } },
       },
       orderBy: { paidAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
     db.order.count({ where }),
+    db.venue.findUnique({ where: { id: session.venueId }, select: { fiscalEnabled: true } }),
   ]);
+
+  // La colonna fiscale compare solo se il venue ha (o ha avuto) documenti:
+  // fiscale attivo, oppure documenti storici emessi quando lo era.
+  const showFiscal = Boolean(venue?.fiscalEnabled) || orders.some((o) => o.fiscalDocuments.length > 0);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -149,6 +156,7 @@ export default async function AdminOrdiniPage({
               <th className="text-right px-4 py-3 hidden sm:table-cell">Ticket</th>
               <th className="text-right px-4 py-3">Totale</th>
               <th className="text-left px-4 py-3 hidden md:table-cell">Stato</th>
+              {showFiscal && <th className="text-left px-4 py-3 hidden md:table-cell">Fiscale</th>}
             </tr>
           </thead>
           <tbody>
@@ -169,11 +177,20 @@ export default async function AdminOrdiniPage({
                     {STATUS_LABELS[order.status] ?? order.status}
                   </span>
                 </td>
+                {showFiscal && (
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {order.fiscalDocuments[0] ? (
+                      <FiscalStatusBadge status={order.fiscalDocuments[0].status as FiscalBadgeStatus} />
+                    ) : (
+                      <span className="text-xs text-zinc-400">—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-zinc-400">Nessun ordine trovato</td>
+                <td colSpan={showFiscal ? 6 : 5} className="px-4 py-10 text-center text-zinc-400">Nessun ordine trovato</td>
               </tr>
             )}
           </tbody>

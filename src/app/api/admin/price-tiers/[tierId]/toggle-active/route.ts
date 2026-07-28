@@ -21,6 +21,22 @@ export async function POST(
   }
 
   const newActive = !priceTier.active;
+
+  // Col fiscale attivo ogni fascia ATTIVA deve avere l'aliquota IVA: riattivare
+  // una fascia senza aliquota romperebbe l'emissione dei documenti.
+  if (newActive && priceTier.vatRate === null) {
+    const venue = await db.venue.findUnique({
+      where: { id: session.venueId },
+      select: { fiscalEnabled: true },
+    });
+    if (venue?.fiscalEnabled) {
+      return NextResponse.json(
+        { ok: false, error: "Il modulo fiscale è attivo: imposta l'aliquota IVA prima di riattivare la fascia" },
+        { status: 400 }
+      );
+    }
+  }
+
   await db.priceTier.update({ where: { id: tierId }, data: { active: newActive } });
 
   await logManagerAction({

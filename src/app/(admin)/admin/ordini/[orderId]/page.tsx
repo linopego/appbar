@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { computeTicketStatus } from "@/lib/tickets/status";
 import { formatEur } from "@/lib/utils/money";
 import { RefundStatusBadge } from "@/components/shared/refund-status-badge";
+import { FiscalStatusBadge, type FiscalBadgeStatus } from "@/components/shared/fiscal-status-badge";
+import { FiscalRetryButton } from "@/components/shared/fiscal-retry-button";
 import { InvalidateTicketsForm } from "./invalidate-tickets-form";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +58,7 @@ export default async function AdminOrdineDettaglioPage({
         orderBy: [{ priceTier: { sortOrder: "asc" } }, { createdAt: "asc" }],
       },
       refunds: { orderBy: { requestedAt: "desc" } },
+      fiscalDocuments: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -171,6 +174,50 @@ export default async function AdminOrdineDettaglioPage({
                   <Link href={`/admin/rimborsi/${r.id}`} className="text-xs text-zinc-500 hover:text-zinc-900 underline">
                     Vedi →
                   </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Documenti fiscali (documento commerciale + eventuali storni) */}
+      {order.fiscalDocuments.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-semibold text-zinc-900">Documenti fiscali</h2>
+          <div className="space-y-2">
+            {order.fiscalDocuments.map((doc) => (
+              <div key={doc.id} className="rounded-xl border border-zinc-200 bg-white px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-zinc-900">
+                      {doc.type === "SALE" ? "Documento commerciale" : "Storno"}
+                    </span>
+                    <FiscalStatusBadge status={doc.status as FiscalBadgeStatus} />
+                  </div>
+                  <span className="text-sm tabular-nums text-zinc-600">{formatEur(doc.total.toString())}</span>
+                </div>
+                <div className="text-xs text-zinc-500 space-y-1">
+                  {doc.protocolNumber && <p>Protocollo: <span className="font-mono text-zinc-700">{doc.protocolNumber}</span></p>}
+                  {doc.status !== "CONFIRMED" && doc.attempts > 0 && <p>Tentativi: {doc.attempts}</p>}
+                  {doc.lastError && doc.status !== "CONFIRMED" && (
+                    <p className="text-red-600">Ultimo errore: {doc.lastError}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {doc.pdfUrl && doc.status === "CONFIRMED" && (
+                    <a
+                      href={doc.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 underline hover:text-blue-800"
+                    >
+                      Scarica PDF
+                    </a>
+                  )}
+                  {doc.status !== "CONFIRMED" && (
+                    <FiscalRetryButton endpoint={`/api/admin/fiscal-documents/${doc.id}/retry`} />
+                  )}
                 </div>
               </div>
             ))}

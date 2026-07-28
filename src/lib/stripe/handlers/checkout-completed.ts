@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { addDays } from "date-fns";
 import { db } from "@/lib/db";
 import { sendOrderConfirmationEmail } from "@/lib/email/order-confirmation";
+import { enqueueAndTrySaleDocument } from "@/lib/fiscal/emit";
 
 const TICKET_VALIDITY_DAYS = 30;
 
@@ -124,4 +125,9 @@ export async function handleCheckoutCompleted(event: Stripe.Event) {
   } catch (err) {
     console.error(`[Stripe] Invio email fallito per order ${orderId}:`, err);
   }
+
+  // Fiscale: DOPO il commit di ordine+ticket, best-effort. Ticket ed email
+  // esistono già: qualunque esito fiscale non tocca la vendita (la funzione
+  // ingoia ogni errore; il cron di recupero riprende i documenti PENDING).
+  await enqueueAndTrySaleDocument(orderId);
 }

@@ -21,14 +21,14 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 403 });
   }
 
-  let body: { name?: unknown; price?: unknown; sortOrder?: unknown };
+  let body: { name?: unknown; price?: unknown; sortOrder?: unknown; vatRate?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Corpo della richiesta non valido" }, { status: 400 });
   }
 
-  const updates: { name?: string; price?: Decimal; sortOrder?: number } = {};
+  const updates: { name?: string; price?: Decimal; sortOrder?: number; vatRate?: Decimal | null } = {};
   const oldValues: Record<string, unknown> = {};
   const newValues: Record<string, unknown> = {};
 
@@ -62,6 +62,35 @@ export async function PATCH(
     oldValues.sortOrder = priceTier.sortOrder;
     newValues.sortOrder = so;
     updates.sortOrder = so;
+  }
+
+  // Aliquota IVA: settabile o azzerabile (null/""). Azzerarla su una fascia
+  // attiva di un venue col fiscale acceso è impedito: romperebbe l'emissione.
+  if (body.vatRate !== undefined) {
+    let vatRateDecimal: Decimal | null = null;
+    if (body.vatRate !== null && body.vatRate !== "") {
+      try {
+        vatRateDecimal = new Decimal(String(body.vatRate));
+        if (vatRateDecimal.lt(0) || vatRateDecimal.gt(99.99)) throw new Error();
+      } catch {
+        return NextResponse.json({ ok: false, error: "vatRate deve essere una percentuale tra 0 e 99.99" }, { status: 400 });
+      }
+    }
+    if (vatRateDecimal === null && priceTier.active) {
+      const venue = await db.venue.findUnique({
+        where: { id: session.venueId },
+        select: { fiscalEnabled: true },
+      });
+      if (venue?.fiscalEnabled) {
+        return NextResponse.json(
+          { ok: false, error: "Il modulo fiscale è attivo: ogni fascia attiva deve avere un'aliquota IVA" },
+          { status: 400 }
+        );
+      }
+    }
+    oldValues.vatRate = priceTier.vatRate?.toString() ?? null;
+    newValues.vatRate = vatRateDecimal?.toString() ?? null;
+    updates.vatRate = vatRateDecimal;
   }
 
   if (Object.keys(updates).length === 0) {

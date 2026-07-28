@@ -12,6 +12,8 @@ export interface OrderConfirmationData {
   // Link testuali "Aggiungi al Wallet" per ticket (feature flag: vuoto se i
   // wallet non sono configurati); niente badge immagine pesanti in email
   walletLinks?: Array<{ label: string; appleUrl?: string; googleUrl?: string }>;
+  // PDF del documento commerciale, presente solo se già emesso all'invio
+  receiptPdfUrl?: string;
 }
 
 export function renderOrderConfirmationHtml(data: OrderConfirmationData): string {
@@ -80,6 +82,15 @@ export function renderOrderConfirmationHtml(data: OrderConfirmationData): string
     <p style="margin: 0 0 24px; color: ${EMAIL_COLORS.inkSoft}; line-height: 1.5; font-size: 14px;">
       I ticket sono validi fino al <strong style="color: ${EMAIL_COLORS.ink};">${expiresFormatted}</strong>.
     </p>
+
+    ${
+      data.receiptPdfUrl
+        ? `
+    <p style="margin: 0 0 24px; color: ${EMAIL_COLORS.inkSoft}; font-size: 13px;">
+      <a href="${data.receiptPdfUrl}" style="color: ${EMAIL_COLORS.ink};">Scarica lo scontrino</a>
+    </p>`
+        : ""
+    }
 
     <p style="margin: 0; color: ${EMAIL_COLORS.inkMuted}; font-size: 12px; text-align: center;">
       Ordine #${data.orderId.slice(0, 8).toUpperCase()}

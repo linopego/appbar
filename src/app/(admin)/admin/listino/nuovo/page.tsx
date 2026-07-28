@@ -8,6 +8,7 @@ export default function NuovaFasciaPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [vatRate, setVatRate] = useState("");
   const [sortOrder, setSortOrder] = useState("100");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,12 @@ export default function NuovaFasciaPage() {
       const res = await fetch("/api/admin/price-tiers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), price: price.trim(), sortOrder: parseInt(sortOrder, 10) }),
+        body: JSON.stringify({
+          name: name.trim(),
+          price: price.trim(),
+          sortOrder: parseInt(sortOrder, 10),
+          vatRate: vatRate.trim() === "" ? null : vatRate.trim(),
+        }),
       });
       const json = await res.json() as { ok: boolean; error?: { code?: string; message?: string } };
       if (!res.ok || !json.ok) {
@@ -71,6 +77,24 @@ export default function NuovaFasciaPage() {
             step="0.01"
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-zinc-900">Aliquota IVA (%)</label>
+          <input
+            type="number"
+            value={vatRate}
+            onChange={(e) => setVatRate(e.target.value)}
+            placeholder="es. 10 o 22"
+            min="0"
+            max="99.99"
+            step="0.01"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
+          />
+          <p className="text-xs text-zinc-400">
+            Facoltativa; obbligatoria su tutte le fasce attive per attivare il modulo fiscale.
+            Chiedi al tuo consulente quale aliquota applicare.
+          </p>
         </div>
 
         <div className="space-y-1">
