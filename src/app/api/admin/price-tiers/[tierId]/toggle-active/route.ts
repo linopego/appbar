@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireStaffRole } from "@/lib/auth/staff";
 import { logManagerAction } from "@/lib/audit";
 import { db } from "@/lib/db";
+import { VAT_REQUIRED_ON_ACTIVATE_ERROR } from "@/lib/price-tiers/validation";
 
 export async function POST(
   _req: NextRequest,
@@ -30,10 +31,7 @@ export async function POST(
       select: { fiscalEnabled: true },
     });
     if (venue?.fiscalEnabled) {
-      return NextResponse.json(
-        { ok: false, error: "Il modulo fiscale è attivo: imposta l'aliquota IVA prima di riattivare la fascia" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: VAT_REQUIRED_ON_ACTIVATE_ERROR }, { status: 400 });
     }
   }
 

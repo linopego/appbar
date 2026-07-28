@@ -3,9 +3,9 @@ import { redirect, notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
-import { formatEur } from "@/lib/utils/money";
 import { VenueToggleActiveButton } from "./toggle-active-button";
 import { FiscalConfigForm } from "./fiscal-config-form";
+import { PriceTiersManager } from "./price-tiers-manager";
 import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
 import type { FiscalVenueConfig } from "@/lib/fiscal/types";
 
@@ -35,6 +35,8 @@ export default async function VenueDetailPage({
   if (!venue) notFound();
 
   const fiscalConfig = (venue.fiscalConfig ?? null) as FiscalVenueConfig | null;
+  // Fasce attive senza aliquota: bloccano l'attivazione del modulo fiscale
+  const missingVatCount = venue.priceTiers.filter((t) => t.active && t.vatRate === null).length;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 px-4 py-10">
@@ -147,6 +149,16 @@ export default async function VenueDetailPage({
             </div>
           </div>
 
+          {missingVatCount > 0 && (
+            <p className="text-sm text-amber-400 bg-amber-900/20 border border-amber-900/50 rounded-lg px-3 py-2">
+              {missingVatCount} fasc{missingVatCount === 1 ? "ia attiva" : "e attive"} senza
+              aliquota IVA: l&apos;attivazione del fiscale resta bloccata.{" "}
+              <a href="#listino" className="underline hover:text-amber-300">
+                Completa le aliquote del listino
+              </a>
+            </p>
+          )}
+
           {session.role === "PLATFORM" ? (
             <div className="border-t border-zinc-800 pt-4">
               <FiscalConfigForm
@@ -222,60 +234,19 @@ export default async function VenueDetailPage({
           </div>
         </div>
 
-        {/* Price tiers */}
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold">
-            Listino ({venue.priceTiers.length} fasce)
-          </h2>
-          <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-900">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-800 text-xs text-zinc-400 uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Nome</th>
-                  <th className="text-right px-4 py-3">Prezzo</th>
-                  <th className="text-right px-4 py-3">IVA</th>
-                  <th className="text-left px-4 py-3">Stato</th>
-                </tr>
-              </thead>
-              <tbody>
-                {venue.priceTiers.map((tier) => (
-                  <tr
-                    key={tier.id}
-                    className="border-b border-zinc-800/50 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-zinc-100">{tier.name}</td>
-                    <td className="px-4 py-3 text-right text-zinc-300 tabular-nums">
-                      {formatEur(tier.price.toString())}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-400 tabular-nums">
-                      {tier.vatRate !== null ? `${tier.vatRate.toString()}%` : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                          tier.active
-                            ? "bg-green-900/50 text-green-400"
-                            : "bg-zinc-800 text-zinc-500"
-                        }`}
-                      >
-                        {tier.active ? "Attivo" : "Inattivo"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {venue.priceTiers.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-8 text-center text-zinc-500"
-                    >
-                      Nessuna fascia prezzo.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        {/* Price tiers: gestione completa (crea/modifica/disattiva), scoping lato API */}
+        <div id="listino" className="scroll-mt-6">
+          <PriceTiersManager
+            venueId={id}
+            tiers={venue.priceTiers.map((tier) => ({
+              id: tier.id,
+              name: tier.name,
+              price: tier.price.toString(),
+              vatRate: tier.vatRate?.toString() ?? null,
+              sortOrder: tier.sortOrder,
+              active: tier.active,
+            }))}
+          />
         </div>
 
         {/* Quick links */}
