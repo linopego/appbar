@@ -11,8 +11,13 @@ const STATUS_CONFIG: Record<RefundStatus, { label: string; className: string }> 
   REJECTED: { label: "Rifiutato", className: "bg-red-100 text-red-800 border-red-200" },
 };
 
-export function RefundStatusBadge({ status }: { status: RefundStatus }) {
-  const config = STATUS_CONFIG[status];
+export function RefundStatusBadge({ status }: { status: RefundStatus | (string & {}) }) {
+  // Lookup safe: uno stato fuori mappa (es. un enum nuovo non ancora gestito)
+  // rende un badge neutro col nome grezzo, mai un crash del render server
+  const config = STATUS_CONFIG[status as RefundStatus] ?? {
+    label: status,
+    className: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  };
   return (
     <span
       className={cn(

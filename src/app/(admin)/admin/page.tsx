@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/auth/staff";
 import { db } from "@/lib/db";
 import { formatEur } from "@/lib/utils/money";
-import { RefundStatusBadge } from "@/components/shared/refund-status-badge";
+import { OrderStatusBadge } from "@/components/shared/order-status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard Admin" };
@@ -173,7 +173,9 @@ export default async function AdminDashboardPage() {
                   <td className="px-4 py-3 text-right text-zinc-500 hidden sm:table-cell">{order._count.tickets}</td>
                   <td className="px-4 py-3 text-right font-medium tabular-nums">{formatEur(order.totalAmount.toString())}</td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <RefundStatusBadge status={order.status as never} />
+                    {/* Stato dell'ORDINE: RefundStatusBadge qui crashava il
+                        render (mappa solo stati di rimborso, "PAID" → undefined) */}
+                    <OrderStatusBadge status={order.status} />
                   </td>
                 </tr>
               ))}

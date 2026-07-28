@@ -33,7 +33,8 @@ export function ChangePasswordForm() {
         setError(typeof data.error === "string" ? data.error : "Errore nel salvataggio.");
         return;
       }
-      router.push("/admin");
+      // Redirect esplicito dal server (sessione appena rigenerata)
+      router.push(typeof data.redirectTo === "string" ? data.redirectTo : "/admin");
       router.refresh();
     } catch {
       setError("Errore di rete. Riprova.");
