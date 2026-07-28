@@ -37,6 +37,8 @@ export async function createStaffSession(payload: StaffSessionPayload): Promise<
   });
 }
 
+const OPERATOR_ROLES: readonly OperatorRole[] = ["BARISTA", "CASSIERE", "MANAGER"];
+
 export async function getStaffSession(): Promise<StaffSessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(STAFF_COOKIE)?.value;
@@ -44,13 +46,29 @@ export async function getStaffSession(): Promise<StaffSessionPayload | null> {
 
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return {
-      operatorId: payload["operatorId"] as string,
-      venueId: payload["venueId"] as string,
-      venueSlug: payload["venueSlug"] as string,
-      role: payload["role"] as OperatorRole,
-      name: payload["name"] as string,
-    };
+    const operatorId = payload["operatorId"];
+    const venueId = payload["venueId"];
+    const venueSlug = payload["venueSlug"];
+    const role = payload["role"];
+    const name = payload["name"];
+
+    // Payload incompleto (token di una versione precedente o malformato) →
+    // sessione NON valida: chi chiama fa redirect al login invece di
+    // crashare a valle (es. findUnique({ where: { id: undefined } }) lancia).
+    if (
+      typeof operatorId !== "string" ||
+      operatorId === "" ||
+      typeof venueId !== "string" ||
+      venueId === "" ||
+      typeof venueSlug !== "string" ||
+      venueSlug === "" ||
+      typeof name !== "string" ||
+      !OPERATOR_ROLES.includes(role as OperatorRole)
+    ) {
+      return null;
+    }
+
+    return { operatorId, venueId, venueSlug, role: role as OperatorRole, name };
   } catch {
     return null;
   }
