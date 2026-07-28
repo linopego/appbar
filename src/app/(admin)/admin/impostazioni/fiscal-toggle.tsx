@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface Props {
   initialEnabled: boolean;
   // Motivo per cui l'attivazione è bloccata (null = attivabile). Il server
   // rifà comunque il controllo: questo serve solo a spiegare in UI.
   blockedReason: string | null;
+  // true quando il blocco dipende da aliquote IVA mancanti sul listino
+  missingVatRates?: boolean;
 }
 
 // Interruttore dell'emissione automatica del documento commerciale.
-export function FiscalToggle({ initialEnabled, blockedReason }: Props) {
+export function FiscalToggle({ initialEnabled, blockedReason, missingVatRates = false }: Props) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +75,14 @@ export function FiscalToggle({ initialEnabled, blockedReason }: Props) {
       {blocked && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           Attivazione non disponibile: {blockedReason}
+          {missingVatRates && (
+            <>
+              {" "}
+              <Link href="/admin/listino" className="underline font-medium">
+                Completa le aliquote del listino
+              </Link>
+            </>
+          )}
         </p>
       )}
       <p className="text-xs text-zinc-500 italic">

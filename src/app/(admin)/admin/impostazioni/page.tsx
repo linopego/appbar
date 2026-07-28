@@ -194,7 +194,13 @@ export default async function ImpostazioniPage() {
         )}
 
         <div className="border-t border-zinc-100 pt-4">
-          <FiscalToggle initialEnabled={venue.fiscalEnabled} blockedReason={fiscalBlockedReason} />
+          <FiscalToggle
+            initialEnabled={venue.fiscalEnabled}
+            blockedReason={fiscalBlockedReason}
+            missingVatRates={
+              moduleConfigured && venue.priceTiers.some((t) => t.vatRate === null)
+            }
+          />
         </div>
       </div>
 
