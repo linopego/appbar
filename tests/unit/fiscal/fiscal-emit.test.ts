@@ -75,7 +75,7 @@ afterEach(() => {
 });
 
 describe("canEnableFiscal — precondizioni di attivazione", () => {
-  const config = { fiscalId: "12345678901" };
+  const config = { fiscalId: "12345678901", name: "Bar Luna Srl" };
 
   it("bloccata se una fascia attiva non ha l'aliquota IVA (col nome nel motivo)", () => {
     const result = canEnableFiscal(
@@ -95,7 +95,19 @@ describe("canEnableFiscal — precondizioni di attivazione", () => {
     expect(result.reason).toContain("piattaforma");
   });
 
-  it("ok con aliquote complete e configurazione presente (anche senza fasce)", () => {
+  it("bloccata senza denominazione esercente (richiesta dal censimento provider)", () => {
+    const result = canEnableFiscal([], { fiscalId: "12345678901" });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain("denominazione");
+  });
+
+  it("bloccata senza identificativo fiscale", () => {
+    const result = canEnableFiscal([], { name: "Bar Luna Srl" });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain("identificativo fiscale");
+  });
+
+  it("ok con aliquote complete e configurazione completa (anche senza fasce)", () => {
     expect(canEnableFiscal([{ name: "Birra", vatRate: D("10.00") }], config).ok).toBe(true);
     expect(canEnableFiscal([], config).ok).toBe(true);
   });

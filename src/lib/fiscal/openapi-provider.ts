@@ -146,12 +146,21 @@ export class OpenapiFiscalProvider implements FiscalProvider {
     return json;
   }
 
-  // Censimento dell'esercente: fiscal_id + eventuali credenziali Fisconline
-  // dai segreti cifrati (in sandbox bastano credenziali fittizie).
+  // Censimento dell'esercente: anagrafica completa (fiscal_id + name
+  // obbligatori per il provider — senza denominazione risponde 422
+  // {"error":334, "The 'name' is required"} — più email/indirizzo se
+  // presenti) + eventuali credenziali Fisconline dai segreti cifrati
+  // (in sandbox bastano credenziali fittizie).
   async registerMerchant(config: FiscalVenueConfig): Promise<FiscalRegisterResult> {
     if (!config.fiscalId) {
       throw new FiscalProviderError(
         "Configurazione esercente senza identificativo fiscale",
+        false
+      );
+    }
+    if (!config.name?.trim()) {
+      throw new FiscalProviderError(
+        "Configurazione esercente senza denominazione: salvala nella configurazione fiscale",
         false
       );
     }
@@ -168,9 +177,18 @@ export class OpenapiFiscalProvider implements FiscalProvider {
       }
     }
 
-    // I segreti contengono le credenziali così come attese dal provider
-    // (es. username/password/pin Fisconline): passthrough senza rimapparle
-    const payload = { fiscal_id: config.fiscalId, ...secrets };
+    // Anagrafica completa (solo i campi valorizzati) + segreti in passthrough
+    // (es. username/password/pin Fisconline, così come attesi dal provider)
+    const payload = {
+      fiscal_id: config.fiscalId,
+      name: config.name.trim(),
+      ...(config.email?.trim() ? { email: config.email.trim() } : {}),
+      ...(config.address?.trim() ? { address: config.address.trim() } : {}),
+      ...(config.city?.trim() ? { city: config.city.trim() } : {}),
+      ...(config.province?.trim() ? { province: config.province.trim() } : {}),
+      ...(config.zip?.trim() ? { zip: config.zip.trim() } : {}),
+      ...secrets,
+    };
 
     let raw: unknown;
     try {

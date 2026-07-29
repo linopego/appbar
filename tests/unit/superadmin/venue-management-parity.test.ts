@@ -86,7 +86,7 @@ beforeEach(() => {
   dbMock.venue.findFirst.mockResolvedValue({
     id: "ven-1",
     organizationId: "org-1",
-    fiscalConfig: { fiscalId: "12345678901" },
+    fiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl" },
     priceTiers: [{ name: "Birra", vatRate: D("10.00") }],
   });
   dbMock.venue.update.mockResolvedValue({});
@@ -154,7 +154,7 @@ describe("toggle fiscale superadmin: stesse precondizioni del responsabile", () 
     dbMock.venue.findFirst.mockResolvedValue({
       id: "ven-1",
       organizationId: "org-1",
-      fiscalConfig: { fiscalId: "12345678901" },
+      fiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl" },
       priceTiers: [{ name: "Drink", vatRate: null }],
     });
 

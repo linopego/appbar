@@ -37,6 +37,7 @@ export default async function VenueDetailPage({
     include: {
       operators: { orderBy: [{ role: "asc" }, { name: "asc" }] },
       priceTiers: { orderBy: { sortOrder: "asc" } },
+      organization: { select: { name: true } },
       _count: { select: { orders: true, tickets: true } },
     },
   });
@@ -160,6 +161,10 @@ export default async function VenueDetailPage({
               <p className="text-zinc-100 font-mono">{fiscalConfig?.fiscalId ?? "—"}</p>
             </div>
             <div>
+              <p className="text-zinc-400 text-xs mb-1">Denominazione</p>
+              <p className="text-zinc-100">{fiscalConfig?.name ?? "—"}</p>
+            </div>
+            <div>
               <p className="text-zinc-400 text-xs mb-1">Registrazione presso il provider</p>
               {fiscalConfig?.configurationId ? (
                 <p className="text-green-400">
@@ -209,6 +214,13 @@ export default async function VenueDetailPage({
               <FiscalConfigForm
                 venueId={id}
                 initialFiscalId={fiscalConfig?.fiscalId ?? ""}
+                initialName={fiscalConfig?.name ?? ""}
+                suggestedName={venue.organization.name}
+                initialEmail={fiscalConfig?.email ?? ""}
+                initialAddress={fiscalConfig?.address ?? ""}
+                initialCity={fiscalConfig?.city ?? ""}
+                initialProvince={fiscalConfig?.province ?? ""}
+                initialZip={fiscalConfig?.zip ?? ""}
                 initialConfigurationId={fiscalConfig?.configurationId ?? ""}
                 hasSecrets={Boolean(fiscalConfig?.encryptedSecrets)}
               />
