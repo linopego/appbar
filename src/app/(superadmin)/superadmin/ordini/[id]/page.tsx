@@ -7,6 +7,7 @@ import { formatEur } from "@/lib/utils/money";
 import { computeTicketStatus } from "@/lib/tickets/status";
 import { FiscalStatusBadge, type FiscalBadgeStatus } from "@/components/shared/fiscal-status-badge";
 import { FiscalRetryButton } from "@/components/shared/fiscal-retry-button";
+import { InvalidateTicketsForm } from "@/components/shared/invalidate-tickets-form";
 import { ManualRefundButton } from "./manual-refund-button";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,14 @@ export default async function SuperAdminOrdineDetailPage({
   const hasActiveTickets =
     (order.status === "PAID" || order.status === "PARTIALLY_REFUNDED") &&
     order.tickets.some((t) => computeTicketStatus(t) === "ACTIVE");
+
+  const activeTickets = order.tickets
+    .filter((t) => computeTicketStatus(t) === "ACTIVE")
+    .map((t) => ({
+      id: t.id,
+      tierName: t.priceTier.name,
+      price: formatEur(t.priceTier.price.toString()),
+    }));
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 px-4 py-10">
@@ -337,6 +346,17 @@ export default async function SuperAdminOrdineDetailPage({
               Rimborsa manualmente tutti i ticket attivi di questo ordine.
             </p>
             <ManualRefundButton orderId={id} />
+          </div>
+        )}
+
+        {/* Invalidazione manuale (parità col pannello responsabile) */}
+        {activeTickets.length > 0 && (
+          <div className="space-y-3 pt-4 border-t border-zinc-800">
+            <h2 className="font-semibold text-zinc-200">Invalidazione manuale</h2>
+            <InvalidateTicketsForm
+              tickets={activeTickets}
+              endpoint="/api/superadmin/tickets/invalidate"
+            />
           </div>
         )}
       </div>

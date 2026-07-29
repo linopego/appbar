@@ -2,16 +2,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/auth/staff";
 import { formatEur } from "@/lib/utils/money";
-import { DailyBarChart, TierPieChart } from "./stats-charts";
+import {
+  getDailyStats,
+  getOperatorStats,
+  getTierStats,
+  parseStatsRange,
+  type DailyStatsRow,
+  type OperatorStatsRow,
+  type TierStatsRow,
+} from "@/lib/reports/stats";
+import { DailyBarChart, TierPieChart } from "@/components/reports/stats-charts";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Statistiche — Admin" };
 
 type TabType = "daily" | "tier" | "operator";
-
-interface DailyRow { date: string; sold: number; consumed: number; revenue: string }
-interface TierRow { tierId: string; tierName: string; price: string; sold: number; consumed: number; revenue: string }
-interface OperatorRow { operatorId: string; operatorName: string; role: string; consumed: number }
 
 const TABS: { type: TabType; label: string }[] = [
   { type: "daily", label: "Per giorno" },
@@ -32,110 +37,18 @@ export default async function StatistichePage({
   const sp = await searchParams;
   const type: TabType = (["daily", "tier", "operator"] as TabType[]).includes(sp.type as TabType) ? (sp.type as TabType) : "daily";
 
-  // Default: last 30 days
-  const now = new Date();
-  const defaultTo = now.toISOString().slice(0, 10);
-  const defaultFrom = new Date(now.getTime() - 30 * 86400_000).toISOString().slice(0, 10);
-  const from = sp.from ?? defaultFrom;
-  const to = sp.to ?? defaultTo;
+  const { from, to, range } = parseStatsRange(sp.from, sp.to, new Date());
 
-  const statsUrl = `/api/admin/stats?type=${type}&from=${from}&to=${to}`;
-
-  // Fetch stats server-side
-  const baseUrl = process.env["NEXT_PUBLIC_BASE_URL"] ?? "http://localhost:3000";
-  let dailyRows: DailyRow[] = [];
-  let tierRows: TierRow[] = [];
-  let operatorRows: OperatorRow[] = [];
+  let dailyRows: DailyStatsRow[] = [];
+  let tierRows: TierStatsRow[] = [];
+  let operatorRows: OperatorStatsRow[] = [];
 
   try {
-    // We call the API internally by directly importing the logic
-    // To avoid HTTP overhead, we use the same db queries inline
-    const { db } = await import("@/lib/db");
-
-    const fromDate = new Date(from + "T00:00:00");
-    const toDate = new Date(to + "T23:59:59");
-
-    if (type === "daily") {
-      const tickets = await db.ticket.findMany({
-        where: { venueId: session.venueId, createdAt: { gte: fromDate, lte: toDate } },
-        select: { createdAt: true, consumedAt: true, status: true },
-      });
-
-      const soldMap = new Map<string, number>();
-      const consumedMap = new Map<string, number>();
-
-      for (const t of tickets) {
-        const d = t.createdAt.toISOString().slice(0, 10);
-        soldMap.set(d, (soldMap.get(d) ?? 0) + 1);
-        if (t.consumedAt) {
-          const dc = t.consumedAt.toISOString().slice(0, 10);
-          consumedMap.set(dc, (consumedMap.get(dc) ?? 0) + 1);
-        }
-      }
-
-      const dates = new Set([...soldMap.keys(), ...consumedMap.keys()]);
-      dailyRows = Array.from(dates).sort().map((d) => ({
-        date: d,
-        sold: soldMap.get(d) ?? 0,
-        consumed: consumedMap.get(d) ?? 0,
-        revenue: "0",
-      }));
-    } else if (type === "tier") {
-      const [soldGroups, consumedGroups, tiers] = await Promise.all([
-        db.ticket.groupBy({
-          by: ["priceTierId"],
-          where: { venueId: session.venueId, createdAt: { gte: fromDate, lte: toDate } },
-          _count: { id: true },
-        }),
-        db.ticket.groupBy({
-          by: ["priceTierId"],
-          where: { venueId: session.venueId, status: "CONSUMED", consumedAt: { gte: fromDate, lte: toDate } },
-          _count: { id: true },
-        }),
-        db.priceTier.findMany({ where: { venueId: session.venueId }, select: { id: true, name: true, price: true } }),
-      ]);
-
-      const tierMap = new Map(tiers.map((t) => [t.id, t]));
-      const consumedMap = new Map(consumedGroups.map((g) => [g.priceTierId, g._count.id]));
-
-      tierRows = soldGroups.map((g) => {
-        const tier = tierMap.get(g.priceTierId);
-        const sold = g._count.id;
-        const consumed = consumedMap.get(g.priceTierId) ?? 0;
-        const revenue = (sold * Number(tier?.price ?? 0)).toFixed(2);
-        return { tierId: g.priceTierId, tierName: tier?.name ?? "?", price: tier?.price.toString() ?? "0", sold, consumed, revenue };
-      }).sort((a, b) => b.sold - a.sold);
-    } else {
-      const [operators, consumedGroups] = await Promise.all([
-        db.operator.findMany({
-          where: { venueId: session.venueId, role: { in: ["BARISTA", "CASSIERE"] } },
-          select: { id: true, name: true, role: true },
-        }),
-        db.ticket.groupBy({
-          by: ["consumedBy"],
-          where: {
-            venueId: session.venueId,
-            status: "CONSUMED",
-            consumedAt: { gte: fromDate, lte: toDate },
-            consumedBy: { not: null },
-          },
-          _count: { id: true },
-        }),
-      ]);
-
-      const consumedMap = new Map(consumedGroups.map((g) => [g.consumedBy!, g._count.id]));
-
-      operatorRows = operators.map((op) => ({
-        operatorId: op.id,
-        operatorName: op.name,
-        role: op.role,
-        consumed: consumedMap.get(op.id) ?? 0,
-      })).sort((a, b) => b.consumed - a.consumed);
-    }
+    if (type === "daily") dailyRows = await getDailyStats(session.venueId, range);
+    else if (type === "tier") tierRows = await getTierStats(session.venueId, range);
+    else operatorRows = await getOperatorStats(session.venueId, range);
   } catch (e) {
     console.error("Stats error", e);
-    void baseUrl;
-    void statsUrl;
   }
 
   function qs(overrides: Record<string, string>) {

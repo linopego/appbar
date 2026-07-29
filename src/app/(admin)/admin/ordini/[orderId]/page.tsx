@@ -7,7 +7,7 @@ import { formatEur } from "@/lib/utils/money";
 import { RefundStatusBadge } from "@/components/shared/refund-status-badge";
 import { FiscalStatusBadge, type FiscalBadgeStatus } from "@/components/shared/fiscal-status-badge";
 import { FiscalRetryButton } from "@/components/shared/fiscal-retry-button";
-import { InvalidateTicketsForm } from "./invalidate-tickets-form";
+import { InvalidateTicketsForm } from "@/components/shared/invalidate-tickets-form";
 
 export const dynamic = "force-dynamic";
 

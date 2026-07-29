@@ -6,7 +6,15 @@ import { db } from "@/lib/db";
 import { VenueToggleActiveButton } from "./toggle-active-button";
 import { FiscalConfigForm } from "./fiscal-config-form";
 import { PriceTiersManager } from "./price-tiers-manager";
+import { DailyReportToggleSA, FiscalToggleSA } from "./venue-settings-toggles";
+import { RefundWindowsEditor } from "@/components/shared/refund-windows-editor";
 import { OPERATOR_ROLE_LABELS } from "@/lib/labels/roles";
+import { isFiscalModuleConfigured } from "@/lib/fiscal/config";
+import { canEnableFiscal } from "@/lib/fiscal/emit";
+import {
+  REFUND_TIMEZONE_OPTIONS,
+  type RefundWindow,
+} from "@/lib/venue-settings/validation";
 import type { FiscalVenueConfig } from "@/lib/fiscal/types";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +45,19 @@ export default async function VenueDetailPage({
   const fiscalConfig = (venue.fiscalConfig ?? null) as FiscalVenueConfig | null;
   // Fasce attive senza aliquota: bloccano l'attivazione del modulo fiscale
   const missingVatCount = venue.priceTiers.filter((t) => t.active && t.vatRate === null).length;
+
+  // Precondizioni del toggle fiscale: IDENTICHE al pannello del responsabile
+  // (stessa canEnableFiscal condivisa)
+  const moduleConfigured = isFiscalModuleConfigured();
+  const activeTiers = venue.priceTiers.filter((t) => t.active);
+  const gate = canEnableFiscal(activeTiers, venue.fiscalConfig);
+  const fiscalBlockedReason = !moduleConfigured
+    ? "modulo fiscale non configurato a livello piattaforma"
+    : gate.ok
+      ? null
+      : (gate.reason ?? "precondizioni mancanti");
+
+  const refundWindows = (venue.refundBlockedWindows as RefundWindow[] | null) ?? [];
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 px-4 py-10">
@@ -159,6 +180,16 @@ export default async function VenueDetailPage({
             </p>
           )}
 
+          {/* Toggle emissione: stesse precondizioni del pannello responsabile */}
+          <div className="border-t border-zinc-800 pt-4">
+            <FiscalToggleSA
+              venueId={id}
+              initialEnabled={venue.fiscalEnabled}
+              blockedReason={fiscalBlockedReason}
+              missingVatRates={moduleConfigured && missingVatCount > 0}
+            />
+          </div>
+
           {session.role === "PLATFORM" ? (
             <div className="border-t border-zinc-800 pt-4">
               <FiscalConfigForm
@@ -173,6 +204,32 @@ export default async function VenueDetailPage({
               La configurazione fiscale è gestita dall&apos;amministratore di piattaforma.
             </p>
           )}
+        </div>
+
+        {/* Impostazioni venue: stesse capacità del pannello responsabile */}
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-5">
+          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
+            Impostazioni
+          </h2>
+
+          <DailyReportToggleSA venueId={id} initialEnabled={venue.dailyReportEnabled} />
+
+          <div className="border-t border-zinc-800 pt-4 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Fasce orarie blocco rimborso</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Durante queste finestre i clienti non possono inviare richieste di rimborso
+                (es. durante l&apos;evento aperto).
+              </p>
+            </div>
+            <RefundWindowsEditor
+              initialWindows={refundWindows}
+              initialTimezone={venue.refundBlockedTimezone}
+              timezoneOptions={REFUND_TIMEZONE_OPTIONS}
+              endpoint={`/api/superadmin/venues/${id}/refund-windows`}
+              theme="dark"
+            />
+          </div>
         </div>
 
         {/* Operators */}
@@ -264,6 +321,18 @@ export default async function VenueDetailPage({
               className="text-zinc-300 hover:text-zinc-50 underline text-sm"
             >
               Vedi operatori →
+            </Link>
+            <Link
+              href={`/superadmin/statistiche?venueId=${id}`}
+              className="text-zinc-300 hover:text-zinc-50 underline text-sm"
+            >
+              Statistiche →
+            </Link>
+            <Link
+              href={`/superadmin/corrispettivi?venueId=${id}`}
+              className="text-zinc-300 hover:text-zinc-50 underline text-sm"
+            >
+              Corrispettivi →
             </Link>
           </div>
         </div>

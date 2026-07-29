@@ -120,7 +120,13 @@ export default async function SuperAdminOrdiniPage({
             </Link>
             <h1 className="text-2xl font-semibold mt-1">Ordini</h1>
           </div>
-          {/* TODO: export */}
+          {/* Download di file da API route: serve <a> nativo, non <Link> */}
+          <a
+            href={`/api/superadmin/orders/export${qs({ page: undefined })}`}
+            className="text-sm px-4 py-2 rounded-lg border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium transition-colors"
+          >
+            Esporta CSV
+          </a>
         </div>
 
         {/* Filters */}
