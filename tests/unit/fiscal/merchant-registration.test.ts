@@ -206,6 +206,59 @@ describe("OpenapiFiscalProvider — 'fiscal_id already exists' (422/112) è succ
   });
 });
 
+describe("OpenapiFiscalProvider — servizio receipts non abilitato (400/174)", () => {
+  const RECEIPTS_DISABLED_BODY = JSON.stringify({
+    message: "receipts service is not enabled for the user, set receipts to true in configuration",
+    error: 174,
+  });
+  const ALREADY_EXISTS_BODY = JSON.stringify({
+    message: "This fiscal_id already exists",
+    error: 112,
+  });
+  const CONFIG = { fiscalId: "12345678901", name: "Bar Luna Srl" };
+
+  it("la creazione della configurazione include receipts:true", async () => {
+    fetchMock.mockResolvedValueOnce(response(200, { data: { id: "cfg-1" } }));
+
+    const provider = new OpenapiFiscalProvider();
+    await provider.registerMerchant(CONFIG);
+
+    const body = JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body));
+    expect(body.receipts).toBe(true);
+  });
+
+  it("emissione 174 → auto-riparazione: UPDATE della config esistente con receipts:true → riemette ok", async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(400, RECEIPTS_DISABLED_BODY)) // emissione: 174
+      .mockResolvedValueOnce(response(422, ALREADY_EXISTS_BODY)) // POST config: esiste già
+      .mockResolvedValueOnce(response(200, { data: { id: "cfg-1" } })) // PATCH con receipts:true
+      .mockResolvedValueOnce(response(200, { data: { id: "rcpt-2" } })); // nuovo tentativo
+
+    const provider = new OpenapiFiscalProvider();
+    const result = await provider.emitSaleDocument({ ...SALE_INPUT, venueFiscalConfig: CONFIG });
+
+    expect(result.providerDocId).toBe("rcpt-2");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    // L'UPDATE imposta il flag del servizio scontrini, non recupera solo l'id
+    const [patchUrl, patchInit] = fetchMock.mock.calls[2] as [string, RequestInit];
+    expect(patchInit.method).toBe("PATCH");
+    expect(patchUrl).toContain("/IT-configurations/12345678901");
+    expect(JSON.parse(String(patchInit.body)).receipts).toBe(true);
+  });
+
+  it("174 con riparazione fallita → l'errore resta visibile, un solo giro", async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(400, RECEIPTS_DISABLED_BODY)) // emissione
+      .mockResolvedValueOnce(response(500, { message: "boom" })); // POST config fallisce
+
+    const provider = new OpenapiFiscalProvider();
+    await expect(
+      provider.emitSaleDocument({ ...SALE_INPUT, venueFiscalConfig: CONFIG })
+    ).rejects.toThrow(/500/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("MockFiscalProvider — scenario non registrato → registra → emetti ok", () => {
   it("l'emissione fallisce con 424 finché l'esercente non è censito, poi riesce", async () => {
     const provider = new MockFiscalProvider("not-registered");
@@ -221,6 +274,21 @@ describe("MockFiscalProvider — scenario non registrato → registra → emetti
     const result = await provider.emitSaleDocument({ ...SALE_INPUT, venueFiscalConfig: config });
     expect(result.providerDocId).toBe("mock-doc-1");
     expect(provider.registerCalls).toHaveLength(1);
+  });
+
+  it("config esistente senza receipts → update → emetti ok", async () => {
+    const provider = new MockFiscalProvider("receipts-disabled");
+    const config = { fiscalId: "12345678901", name: "Bar Luna Srl" };
+
+    await expect(
+      provider.emitSaleDocument({ ...SALE_INPUT, venueFiscalConfig: config })
+    ).rejects.toMatchObject({ receiptsNotEnabled: true });
+
+    const update = await provider.registerMerchant(config);
+    expect(update.providerConfigurationId).toBe("existing-config-12345678901");
+
+    const result = await provider.emitSaleDocument({ ...SALE_INPUT, venueFiscalConfig: config });
+    expect(result.providerDocId).toBe("mock-doc-1");
   });
 });
 
