@@ -56,6 +56,21 @@ function toItems(lines: FiscalLine[]) {
   }));
 }
 
+// Alias dell'id configurazione nelle risposte del provider
+const CONFIG_ID_KEYS = ["configuration_id", "id", "uuid", "fiscal_id"];
+
+// Le risposte Openapi incapsulano spesso in { data: ... }
+function unwrapData(raw: unknown): unknown {
+  return typeof raw === "object" && raw !== null && "data" in raw
+    ? (raw as { data: unknown }).data
+    : raw;
+}
+
+// 422 {"message":"This fiscal_id already exists","error":112}
+function isAlreadyExistsError(message: string): boolean {
+  return message.includes('"error":112') || /already exists/i.test(message);
+}
+
 function pickString(obj: unknown, keys: string[]): string | undefined {
   if (typeof obj !== "object" || obj === null) return undefined;
   const record = obj as Record<string, unknown>;
@@ -68,11 +83,7 @@ function pickString(obj: unknown, keys: string[]): string | undefined {
 }
 
 function parseResult(raw: unknown): FiscalEmitResult {
-  // Le risposte Openapi incapsulano spesso in { data: ... }
-  const data =
-    typeof raw === "object" && raw !== null && "data" in raw
-      ? (raw as { data: unknown }).data
-      : raw;
+  const data = unwrapData(raw);
 
   const providerDocId = pickString(data, ["id", "receipt_id", "uuid"]);
   if (!providerDocId) {
@@ -192,29 +203,89 @@ export class OpenapiFiscalProvider implements FiscalProvider {
 
     let raw: unknown;
     try {
-      raw = await this.request("POST", "/IT-configurations", payload);
+      raw = await this.configurationsRequest("POST", "", payload);
     } catch (error) {
-      // Path alternativo con underscore (è la grafia usata dal messaggio
-      // d'errore del provider): solo se il 404 NON è un "not registered"
+      // "This fiscal_id already exists" (error 112): la configurazione esiste
+      // già presso il provider (tentativo precedente) → NON è un errore.
+      // Allinea l'anagrafica e recupera l'id esistente: registerMerchant è
+      // pienamente idempotente.
+      if (error instanceof FiscalProviderError && isAlreadyExistsError(error.message)) {
+        return this.recoverExistingConfiguration(config.fiscalId, payload);
+      }
+      throw error;
+    }
+
+    const providerConfigurationId =
+      pickString(unwrapData(raw), CONFIG_ID_KEYS) ?? config.fiscalId;
+
+    return { providerConfigurationId, raw };
+  }
+
+  // Richieste all'anagrafica configurazioni, con fallback sul path con
+  // underscore (è la grafia usata dai messaggi d'errore del provider) quando
+  // quello documentato col trattino risponde un 404 "endpoint inesistente"
+  // (mai per il 404 "not registered", che è un esito applicativo).
+  private async configurationsRequest(
+    method: string,
+    pathSuffix: string,
+    body?: unknown
+  ): Promise<unknown> {
+    try {
+      return await this.request(method, `/IT-configurations${pathSuffix}`, body);
+    } catch (error) {
       if (
         error instanceof FiscalProviderError &&
         !error.notRegistered &&
         error.message.includes("HTTP 404")
       ) {
-        raw = await this.request("POST", "/IT_configurations", payload);
-      } else {
-        throw error;
+        return this.request(method, `/IT_configurations${pathSuffix}`, body);
+      }
+      throw error;
+    }
+  }
+
+  // Configurazione già esistente: PATCH per allineare l'anagrafica attuale
+  // (best-effort: il recupero dell'id resta prioritario), poi GET per l'id.
+  // Ultimo fallback: il fiscal_id stesso — è la chiave con cui il provider
+  // indirizza la configurazione (GET/PATCH/DELETE /IT-configurations/{fiscal_id}).
+  private async recoverExistingConfiguration(
+    fiscalId: string,
+    payload: Record<string, unknown>
+  ): Promise<FiscalRegisterResult> {
+    console.warn(
+      `[Fiscale] configurazione già esistente presso il provider per ${fiscalId}: allineo l'anagrafica e recupero l'id`
+    );
+    const suffix = `/${encodeURIComponent(fiscalId)}`;
+    const { fiscal_id: _inPath, ...updatePayload } = payload;
+    void _inPath;
+
+    let raw: unknown = null;
+    try {
+      raw = await this.configurationsRequest("PATCH", suffix, updatePayload);
+    } catch (error) {
+      console.warn(
+        `[Fiscale] allineamento anagrafica fallito per ${fiscalId} (proseguo col recupero dell'id):`,
+        error instanceof Error ? error.message : error
+      );
+    }
+
+    let providerConfigurationId = pickString(unwrapData(raw), CONFIG_ID_KEYS);
+    if (!providerConfigurationId) {
+      try {
+        raw = await this.configurationsRequest("GET", suffix);
+        providerConfigurationId = pickString(unwrapData(raw), CONFIG_ID_KEYS);
+      } catch (error) {
+        console.warn(
+          `[Fiscale] lettura configurazione esistente fallita per ${fiscalId}:`,
+          error instanceof Error ? error.message : error
+        );
       }
     }
 
-    const data =
-      typeof raw === "object" && raw !== null && "data" in raw
-        ? (raw as { data: unknown }).data
-        : raw;
-    const providerConfigurationId =
-      pickString(data, ["configuration_id", "id", "uuid", "fiscal_id"]) ?? config.fiscalId;
-
-    return { providerConfigurationId, raw };
+    return {
+      providerConfigurationId: providerConfigurationId ?? fiscalId,
+      raw: raw ?? { recovered: true, fiscal_id: fiscalId },
+    };
   }
 
   // Auto-riparazione del 424: UNA registrazione automatica e UN solo nuovo

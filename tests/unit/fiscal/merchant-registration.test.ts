@@ -140,6 +140,72 @@ describe("OpenapiFiscalProvider — auto-riparazione del 424", () => {
   });
 });
 
+describe("OpenapiFiscalProvider — 'fiscal_id already exists' (422/112) è successo idempotente", () => {
+  const ALREADY_EXISTS_BODY = JSON.stringify({
+    message: "This fiscal_id already exists",
+    error: 112,
+  });
+  const CONFIG = { fiscalId: "12345678901", name: "Bar Luna Srl" };
+
+  it("esiste già → PATCH di allineamento anagrafica → id dalla risposta", async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(422, ALREADY_EXISTS_BODY)) // POST
+      .mockResolvedValueOnce(response(200, { data: { id: "cfg-esistente" } })); // PATCH
+
+    const provider = new OpenapiFiscalProvider();
+    const result = await provider.registerMerchant(CONFIG);
+
+    expect(result.providerConfigurationId).toBe("cfg-esistente");
+    const [patchUrl, patchInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(patchInit.method).toBe("PATCH");
+    expect(patchUrl).toContain("/IT-configurations/12345678901");
+    // L'anagrafica attuale viene riallineata (fiscal_id sta nel path)
+    const patchBody = JSON.parse(String(patchInit.body));
+    expect(patchBody.name).toBe("Bar Luna Srl");
+    expect(patchBody.fiscal_id).toBeUndefined();
+  });
+
+  it("PATCH fallito → GET della configurazione esistente per l'id", async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(422, ALREADY_EXISTS_BODY)) // POST
+      .mockResolvedValueOnce(response(500, { message: "boom" })) // PATCH
+      .mockResolvedValueOnce(response(200, { data: { configuration_id: "cfg-9" } })); // GET
+
+    const provider = new OpenapiFiscalProvider();
+    const result = await provider.registerMerchant(CONFIG);
+
+    expect(result.providerConfigurationId).toBe("cfg-9");
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("GET");
+  });
+
+  it("anche PATCH e GET falliti → successo con fiscal_id come id (chiave del provider)", async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(422, ALREADY_EXISTS_BODY)) // POST
+      .mockResolvedValueOnce(response(500, { message: "boom" })) // PATCH
+      .mockResolvedValueOnce(response(500, { message: "boom" })); // GET
+
+    const provider = new OpenapiFiscalProvider();
+    const result = await provider.registerMerchant(CONFIG);
+
+    expect(result.providerConfigurationId).toBe("12345678901");
+  });
+
+  it("idempotente: N chiamate producono sempre 'registrato con ID valorizzato'", async () => {
+    // Prima chiamata: creazione ok; seconda: already exists → recupero
+    fetchMock
+      .mockResolvedValueOnce(response(200, { data: { id: "cfg-1" } })) // POST 1
+      .mockResolvedValueOnce(response(422, ALREADY_EXISTS_BODY)) // POST 2
+      .mockResolvedValueOnce(response(200, { data: { id: "cfg-1" } })); // PATCH 2
+
+    const provider = new OpenapiFiscalProvider();
+    const first = await provider.registerMerchant(CONFIG);
+    const second = await provider.registerMerchant(CONFIG);
+
+    expect(first.providerConfigurationId).toBe("cfg-1");
+    expect(second.providerConfigurationId).toBe("cfg-1");
+  });
+});
+
 describe("MockFiscalProvider — scenario non registrato → registra → emetti ok", () => {
   it("l'emissione fallisce con 424 finché l'esercente non è censito, poi riesce", async () => {
     const provider = new MockFiscalProvider("not-registered");
@@ -159,6 +225,20 @@ describe("MockFiscalProvider — scenario non registrato → registra → emetti
 });
 
 describe("registerVenueMerchant — persistenza dell'id configurazione", () => {
+  it("mock 'esiste già' → recupera l'ID esistente e lo persiste (stato Registrato)", async () => {
+    dbMock.venue.findUnique.mockResolvedValue({
+      fiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl" },
+    });
+    dbMock.venue.update.mockResolvedValue({});
+    const provider = new MockFiscalProvider("already-exists");
+
+    const outcome = await registerVenueMerchant("ven-1", provider);
+
+    expect(outcome).toEqual({ ok: true, providerConfigurationId: "existing-config-12345678901" });
+    const update = dbMock.venue.update.mock.calls[0]?.[0];
+    expect(update?.data.fiscalConfig.configurationId).toBe("existing-config-12345678901");
+  });
+
   it("registra e salva providerConfigurationId dentro fiscalConfig", async () => {
     dbMock.venue.findUnique.mockResolvedValue({
       fiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl", encryptedSecrets: "..." },
