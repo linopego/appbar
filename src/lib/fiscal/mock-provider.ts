@@ -11,8 +11,15 @@ import {
 // Provider finto per i test: comportamento programmabile per esercitare la
 // macchina a stati (successo, errore ritentabile, errore definitivo) e il
 // flusso di censimento ("not-registered": le emissioni falliscono con 424
-// finché registerMerchant non viene chiamato).
-export type MockBehavior = "succeed" | "fail-retryable" | "fail-permanent" | "not-registered";
+// finché registerMerchant non viene chiamato; "already-exists": la
+// configurazione esiste già presso il provider e registerMerchant la
+// recupera in modo idempotente).
+export type MockBehavior =
+  | "succeed"
+  | "fail-retryable"
+  | "fail-permanent"
+  | "not-registered"
+  | "already-exists";
 
 export class MockFiscalProvider implements FiscalProvider {
   behavior: MockBehavior;
@@ -68,6 +75,15 @@ export class MockFiscalProvider implements FiscalProvider {
     // Come il provider reale: la denominazione è obbligatoria (422/334)
     if (!config.name?.trim()) {
       throw new FiscalProviderError('mock HTTP 422: {"message":"The \'name\' is required","error":334}', false);
+    }
+    // "already-exists" (422/112): il POST fallirebbe, ma l'adapter recupera
+    // la configurazione esistente → esito comunque idempotente con id
+    if (this.behavior === "already-exists") {
+      this.registered = true;
+      return {
+        providerConfigurationId: `existing-config-${config.fiscalId ?? "senza-id"}`,
+        raw: { mock: true, alreadyExisted: true },
+      };
     }
     this.registered = true;
     return {
