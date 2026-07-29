@@ -36,6 +36,57 @@ export function isDueForRetry(
   return now.getTime() - doc.updatedAt.getTime() >= backoffMinutes(doc.attempts) * 60_000;
 }
 
+// ── Censimento esercente presso il provider ─────────────────────────────────
+// SCELTA DOCUMENTATA sull'attivazione del toggle fiscale: la registrazione
+// presso il provider NON è una precondizione bloccante. È l'approccio più
+// robusto: l'attivazione non dipende dalla disponibilità del provider in quel
+// momento, e l'adapter fa comunque auto-registrazione + nuovo tentativo alla
+// prima emissione (withAutoRegistration). La UI mostra lo stato (Registrato /
+// Non registrato) e offre la registrazione esplicita; se manca, avvisa che
+// avverrà automaticamente al primo documento.
+
+export type RegisterMerchantOutcome =
+  | { ok: true; providerConfigurationId: string }
+  | { ok: false; status: number; error: string };
+
+export async function registerVenueMerchant(
+  venueId: string,
+  provider: FiscalProvider = defaultProvider
+): Promise<RegisterMerchantOutcome> {
+  if (!isFiscalModuleConfigured()) {
+    return { ok: false, status: 400, error: "Modulo fiscale non configurato a livello piattaforma" };
+  }
+
+  const venue = await db.venue.findUnique({
+    where: { id: venueId },
+    select: { fiscalConfig: true },
+  });
+  const config = (venue?.fiscalConfig ?? null) as FiscalVenueConfig | null;
+  if (!config?.fiscalId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Configurazione esercente assente: salva prima l'identificativo fiscale",
+    };
+  }
+
+  try {
+    const result = await provider.registerMerchant(config);
+    // L'id della configurazione finisce nel campo già esistente di fiscalConfig
+    await db.venue.update({
+      where: { id: venueId },
+      data: {
+        fiscalConfig: { ...config, configurationId: result.providerConfigurationId } as object,
+      },
+    });
+    return { ok: true, providerConfigurationId: result.providerConfigurationId };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Errore del provider fiscale";
+    return { ok: false, status: 502, error: message };
+  }
+}
+
 // Precondizioni di attivazione per venue: aliquota su TUTTI i tier attivi
 // e configurazione esercente presente.
 export function canEnableFiscal(

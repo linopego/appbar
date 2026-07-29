@@ -48,6 +48,12 @@ Quando aggiungi una capacità al pannello del responsabile, **nella stessa PR**:
 
 - **La vendita non dipende MAI dal fiscale**: emissione asincrona, ritentabile,
   osservabile (vedi `src/lib/fiscal/`). Ticket ed email si creano sempre.
+- **Censimento esercente presso il provider fiscale**: NON è precondizione
+  bloccante per l'attivazione del toggle (scelta di robustezza: l'attivazione
+  non dipende dalla disponibilità del provider). L'adapter fa
+  auto-registrazione + un solo nuovo tentativo al primo 424 "not registered";
+  la UI mostra lo stato e offre la registrazione esplicita (solo PLATFORM,
+  come ogni modifica di fiscalConfig).
 - **Snapshot immutabili**: `OrderItem` congela nome/prezzo (e i
   `FiscalDocument` l'aliquota) al momento dell'acquisto; modificare il listino
   non tocca mai il venduto.

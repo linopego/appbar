@@ -99,11 +99,16 @@ export function FiscalToggleSA({
   // rifà comunque il controllo: qui serve solo a spiegare in UI.
   blockedReason,
   missingVatRates,
+  notRegistered = false,
 }: {
   venueId: string;
   initialEnabled: boolean;
   blockedReason: string | null;
   missingVatRates: boolean;
+  // Config presente ma esercente non ancora censito presso il provider:
+  // NON blocca l'attivazione (l'adapter fa auto-registrazione alla prima
+  // emissione), ma va detto chiaramente.
+  notRegistered?: boolean;
 }) {
   const t = useToggle(`/api/superadmin/venues/${venueId}/fiscal`, initialEnabled);
   const blocked = !t.enabled && blockedReason !== null;
@@ -133,6 +138,13 @@ export function FiscalToggleSA({
               </a>
             </>
           )}
+        </p>
+      )}
+      {!blocked && notRegistered && (
+        <p className="text-xs text-zinc-400">
+          Esercente non ancora registrato presso il provider: la registrazione avverrà
+          automaticamente alla prima emissione, oppure usa &ldquo;Registra esercente presso il
+          provider&rdquo; qui sopra.
         </p>
       )}
       <p className="text-xs text-zinc-500 italic">

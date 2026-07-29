@@ -41,6 +41,11 @@ export default async function ImpostazioniPage() {
 
   // Precondizioni di attivazione fiscale + eventuali documenti in sofferenza
   const moduleConfigured = isFiscalModuleConfigured();
+  // Censimento presso il provider: NON blocca l'attivazione (auto-riparazione
+  // alla prima emissione), ma lo stato va mostrato
+  const fiscalRegistered = Boolean(
+    (venue.fiscalConfig as { configurationId?: string } | null)?.configurationId
+  );
   const gate = canEnableFiscal(venue.priceTiers, venue.fiscalConfig);
   const fiscalBlockedReason = !moduleConfigured
     ? "modulo fiscale non configurato a livello piattaforma"
@@ -139,6 +144,16 @@ export default async function ImpostazioniPage() {
               {venue.fiscalConfig ? "Presente" : "Assente (a cura della piattaforma)"}
             </span>
           </div>
+          {venue.fiscalConfig && (
+            <div className="flex justify-between gap-4">
+              <span className="text-zinc-500">Registrazione presso il provider</span>
+              <span
+                className={fiscalRegistered ? "text-green-700 font-medium" : "text-zinc-400"}
+              >
+                {fiscalRegistered ? "Registrato" : "Automatica alla prima emissione"}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between gap-4">
             <span className="text-zinc-500">Aliquote IVA sul listino</span>
             <span

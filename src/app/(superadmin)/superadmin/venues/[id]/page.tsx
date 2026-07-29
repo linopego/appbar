@@ -5,6 +5,7 @@ import { orgScopeWhere } from "@/lib/auth/org-scope";
 import { db } from "@/lib/db";
 import { VenueToggleActiveButton } from "./toggle-active-button";
 import { FiscalConfigForm } from "./fiscal-config-form";
+import { FiscalRegisterButton } from "./fiscal-register-button";
 import { PriceTiersManager } from "./price-tiers-manager";
 import { DailyReportToggleSA, FiscalToggleSA } from "./venue-settings-toggles";
 import { RefundWindowsEditor } from "@/components/shared/refund-windows-editor";
@@ -159,8 +160,15 @@ export default async function VenueDetailPage({
               <p className="text-zinc-100 font-mono">{fiscalConfig?.fiscalId ?? "—"}</p>
             </div>
             <div>
-              <p className="text-zinc-400 text-xs mb-1">ID configurazione provider</p>
-              <p className="text-zinc-100 font-mono">{fiscalConfig?.configurationId ?? "—"}</p>
+              <p className="text-zinc-400 text-xs mb-1">Registrazione presso il provider</p>
+              {fiscalConfig?.configurationId ? (
+                <p className="text-green-400">
+                  Registrato{" "}
+                  <span className="font-mono text-zinc-300">({fiscalConfig.configurationId})</span>
+                </p>
+              ) : (
+                <p className="text-zinc-400">Non registrato</p>
+              )}
             </div>
             <div>
               <p className="text-zinc-400 text-xs mb-1">Segreti esercente</p>
@@ -169,6 +177,11 @@ export default async function VenueDetailPage({
               </p>
             </div>
           </div>
+
+          {/* Censimento esplicito: config salvata ma non ancora registrata */}
+          {session.role === "PLATFORM" && fiscalConfig?.fiscalId && !fiscalConfig.configurationId && (
+            <FiscalRegisterButton venueId={id} />
+          )}
 
           {missingVatCount > 0 && (
             <p className="text-sm text-amber-400 bg-amber-900/20 border border-amber-900/50 rounded-lg px-3 py-2">
@@ -187,6 +200,7 @@ export default async function VenueDetailPage({
               initialEnabled={venue.fiscalEnabled}
               blockedReason={fiscalBlockedReason}
               missingVatRates={moduleConfigured && missingVatCount > 0}
+              notRegistered={Boolean(fiscalConfig?.fiscalId) && !fiscalConfig?.configurationId}
             />
           </div>
 
