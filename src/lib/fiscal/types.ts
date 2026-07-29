@@ -46,18 +46,31 @@ export interface FiscalEmitResult {
   raw: unknown;
 }
 
-// Errore tipizzato: retryable decide se la macchina a stati ritenta
+export interface FiscalRegisterResult {
+  // Id della configurazione creata presso il provider (censimento esercente)
+  providerConfigurationId: string;
+  raw: unknown;
+}
+
+// Errore tipizzato: retryable decide se la macchina a stati ritenta;
+// notRegistered marca il 424 "Fiscal ID not registered" del provider
+// (esercente mai censito → l'adapter tenta UNA registrazione automatica).
 export class FiscalProviderError extends Error {
   readonly retryable: boolean;
+  readonly notRegistered: boolean;
 
-  constructor(message: string, retryable: boolean) {
+  constructor(message: string, retryable: boolean, options?: { notRegistered?: boolean }) {
     super(message);
     this.name = "FiscalProviderError";
     this.retryable = retryable;
+    this.notRegistered = options?.notRegistered ?? false;
   }
 }
 
 export interface FiscalProvider {
   emitSaleDocument(input: SaleDocumentInput): Promise<FiscalEmitResult>;
   emitVoidDocument(input: VoidDocumentInput): Promise<FiscalEmitResult>;
+  // Censimento dell'esercente presso il provider (necessario prima della
+  // prima emissione; vedi auto-riparazione nell'adapter)
+  registerMerchant(config: FiscalVenueConfig): Promise<FiscalRegisterResult>;
 }

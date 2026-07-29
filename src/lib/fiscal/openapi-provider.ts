@@ -3,10 +3,13 @@ import {
   FiscalProviderError,
   type FiscalEmitResult,
   type FiscalLine,
+  type FiscalRegisterResult,
+  type FiscalVenueConfig,
   type SaleDocumentInput,
   type VoidDocumentInput,
 } from "./types";
 import { isFiscalSandbox } from "./config";
+import { decryptFiscalSecrets } from "./crypto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Adapter Openapi — API "Fatturazione e Scontrini Elettronici" (IT-receipts).
@@ -22,6 +25,12 @@ import { isFiscalSandbox } from "./config";
 //       vat_rate_code, discount }], electronic_payment_amount }
 //   PATCH  /IT-receipts/{id}   registra un RESO (rimborso parziale)
 //   DELETE /IT-receipts/{id}   ANNULLO del documento (rimborso totale)
+//   POST   /IT-configurations  censisce l'esercente (fiscal_id + credenziali
+//     Fisconline dai segreti cifrati); OBBLIGATORIO prima della prima
+//     emissione, altrimenti HTTP 404 {"error":424, "Fiscal ID not found or
+//     not registered, use endpoint /IT_configurations to register it"}.
+//     Il messaggio d'errore scrive il path con underscore: proviamo prima la
+//     forma documentata col trattino, poi quella del messaggio come fallback.
 //
 // OGNI dettaglio del provider resta qui dentro: il core vede solo
 // FiscalProvider. La risposta viene letta in modo difensivo (più alias di
@@ -120,51 +129,139 @@ export class OpenapiFiscalProvider implements FiscalProvider {
     }
 
     if (!res.ok) {
-      // 5xx / 408 / 429 → ritentabile; altri 4xx → definitivo
+      // 5xx / 408 / 429 → ritentabile; altri 4xx → definitivo.
+      // 424 "Fiscal ID not registered" (dentro un HTTP 404): l'esercente non
+      // è mai stato censito → marcato per l'auto-registrazione.
       const retryable = res.status >= 500 || res.status === 408 || res.status === 429;
+      const notRegistered =
+        res.status === 404 &&
+        (text.includes('"error":424') || /not (found or )?(not )?registered/i.test(text));
       throw new FiscalProviderError(
         `Provider fiscale HTTP ${res.status}: ${text.slice(0, 300)}`,
-        retryable
+        retryable,
+        { notRegistered }
       );
     }
 
     return json;
   }
 
+  // Censimento dell'esercente: fiscal_id + eventuali credenziali Fisconline
+  // dai segreti cifrati (in sandbox bastano credenziali fittizie).
+  async registerMerchant(config: FiscalVenueConfig): Promise<FiscalRegisterResult> {
+    if (!config.fiscalId) {
+      throw new FiscalProviderError(
+        "Configurazione esercente senza identificativo fiscale",
+        false
+      );
+    }
+
+    let secrets: Record<string, unknown> = {};
+    if (config.encryptedSecrets) {
+      try {
+        secrets = decryptFiscalSecrets(config.encryptedSecrets);
+      } catch {
+        throw new FiscalProviderError(
+          "Impossibile decifrare i segreti esercente (FISCAL_CONFIG_ENCRYPTION_KEY errata o assente)",
+          false
+        );
+      }
+    }
+
+    // I segreti contengono le credenziali così come attese dal provider
+    // (es. username/password/pin Fisconline): passthrough senza rimapparle
+    const payload = { fiscal_id: config.fiscalId, ...secrets };
+
+    let raw: unknown;
+    try {
+      raw = await this.request("POST", "/IT-configurations", payload);
+    } catch (error) {
+      // Path alternativo con underscore (è la grafia usata dal messaggio
+      // d'errore del provider): solo se il 404 NON è un "not registered"
+      if (
+        error instanceof FiscalProviderError &&
+        !error.notRegistered &&
+        error.message.includes("HTTP 404")
+      ) {
+        raw = await this.request("POST", "/IT_configurations", payload);
+      } else {
+        throw error;
+      }
+    }
+
+    const data =
+      typeof raw === "object" && raw !== null && "data" in raw
+        ? (raw as { data: unknown }).data
+        : raw;
+    const providerConfigurationId =
+      pickString(data, ["configuration_id", "id", "uuid", "fiscal_id"]) ?? config.fiscalId;
+
+    return { providerConfigurationId, raw };
+  }
+
+  // Auto-riparazione del 424: UNA registrazione automatica e UN solo nuovo
+  // tentativo di emissione. Se anche la registrazione fallisce, il suo errore
+  // resta visibile sul documento (lastError) come qualunque altro esito.
+  private async withAutoRegistration<T>(
+    config: FiscalVenueConfig,
+    emit: () => Promise<T>
+  ): Promise<T> {
+    try {
+      return await emit();
+    } catch (error) {
+      if (
+        error instanceof FiscalProviderError &&
+        error.notRegistered &&
+        config.fiscalId
+      ) {
+        console.warn(
+          `[Fiscale] esercente ${config.fiscalId} non censito presso il provider: registrazione automatica e nuovo tentativo di emissione`
+        );
+        await this.registerMerchant(config);
+        return await emit();
+      }
+      throw error;
+    }
+  }
+
   async emitSaleDocument(input: SaleDocumentInput): Promise<FiscalEmitResult> {
     const config = input.venueFiscalConfig;
-    const raw = await this.request("POST", "/IT-receipts", {
-      fiscal_id: config.fiscalId,
-      ...(config.configurationId ? { configuration_id: config.configurationId } : {}),
-      // Riferimento nostro per riconciliazione/idempotenza lato provider
-      external_id: input.idempotencyKey,
-      items: toItems(input.lines),
-      // Vendita Klink: pagamento sempre elettronico (Stripe)
-      electronic_payment_amount: Number(input.total),
-      cash_payment_amount: 0,
-      invoice_issuing: false,
+    return this.withAutoRegistration(config, async () => {
+      const raw = await this.request("POST", "/IT-receipts", {
+        fiscal_id: config.fiscalId,
+        ...(config.configurationId ? { configuration_id: config.configurationId } : {}),
+        // Riferimento nostro per riconciliazione/idempotenza lato provider
+        external_id: input.idempotencyKey,
+        items: toItems(input.lines),
+        // Vendita Klink: pagamento sempre elettronico (Stripe)
+        electronic_payment_amount: Number(input.total),
+        cash_payment_amount: 0,
+        invoice_issuing: false,
+      });
+      return parseResult(raw);
     });
-    return parseResult(raw);
   }
 
   async emitVoidDocument(input: VoidDocumentInput): Promise<FiscalEmitResult> {
-    if (input.full) {
-      // Rimborso totale → ANNULLO del documento originale
-      const raw = await this.request(
-        "DELETE",
-        `/IT-receipts/${encodeURIComponent(input.originalProviderDocId)}`
-      );
-      return parseResult(raw ?? { id: `${input.originalProviderDocId}-void` });
-    }
-    // Rimborso parziale → RESO delle righe rimborsate
-    const raw = await this.request(
-      "PATCH",
-      `/IT-receipts/${encodeURIComponent(input.originalProviderDocId)}`,
-      {
-        external_id: input.idempotencyKey,
-        items: toItems(input.lines),
+    return this.withAutoRegistration(input.venueFiscalConfig, async () => {
+      if (input.full) {
+        // Rimborso totale → ANNULLO del documento originale
+        const raw = await this.request(
+          "DELETE",
+          `/IT-receipts/${encodeURIComponent(input.originalProviderDocId)}`
+        );
+        return parseResult(raw ?? { id: `${input.originalProviderDocId}-void` });
       }
-    );
-    return parseResult(raw);
+      // Rimborso parziale → RESO delle righe rimborsate
+      const raw = await this.request(
+        "PATCH",
+        `/IT-receipts/${encodeURIComponent(input.originalProviderDocId)}`,
+        {
+          external_id: input.idempotencyKey,
+          items: toItems(input.lines),
+        }
+      );
+      return parseResult(raw);
+    });
   }
 }
