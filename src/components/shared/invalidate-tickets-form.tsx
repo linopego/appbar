@@ -9,7 +9,15 @@ interface Ticket {
   price: string;
 }
 
-export function InvalidateTicketsForm({ tickets }: { tickets: Ticket[] }) {
+// Form condiviso: il responsabile usa l'endpoint admin (default), il
+// superadmin passa il proprio endpoint scopato.
+export function InvalidateTicketsForm({
+  tickets,
+  endpoint = "/api/admin/tickets/invalidate",
+}: {
+  tickets: Ticket[];
+  endpoint?: string;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState("");
@@ -33,7 +41,7 @@ export function InvalidateTicketsForm({ tickets }: { tickets: Ticket[] }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/tickets/invalidate", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticketIds: Array.from(selected), reason: reason.trim() }),

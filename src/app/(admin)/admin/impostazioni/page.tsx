@@ -4,30 +4,16 @@ import { requireStaffRole } from "@/lib/auth/staff";
 import { db } from "@/lib/db";
 import { isFiscalModuleConfigured } from "@/lib/fiscal/config";
 import { canEnableFiscal } from "@/lib/fiscal/emit";
-import { RefundWindowsEditor } from "./refund-windows-editor";
+import { RefundWindowsEditor } from "@/components/shared/refund-windows-editor";
+import {
+  REFUND_TIMEZONE_OPTIONS,
+  type RefundWindow,
+} from "@/lib/venue-settings/validation";
 import { DailyReportToggle } from "./daily-report-toggle";
 import { FiscalToggle } from "./fiscal-toggle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Impostazioni — Admin" };
-
-export interface RefundWindow {
-  day: number;
-  startHour: number;
-  startMin: number;
-  endHour: number;
-  endMin: number;
-}
-
-const IANA_TIMEZONES = [
-  "Europe/Rome",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Madrid",
-  "Europe/Amsterdam",
-  "UTC",
-];
 
 export default async function ImpostazioniPage() {
   const session = await requireStaffRole(["MANAGER"]).catch(() => null);
@@ -216,7 +202,7 @@ export default async function ImpostazioniPage() {
         <RefundWindowsEditor
           initialWindows={windows}
           initialTimezone={venue.refundBlockedTimezone}
-          timezoneOptions={IANA_TIMEZONES}
+          timezoneOptions={REFUND_TIMEZONE_OPTIONS}
         />
       </div>
     </div>

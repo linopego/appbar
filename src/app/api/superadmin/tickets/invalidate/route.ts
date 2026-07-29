@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireStaffRole } from "@/lib/auth/staff";
-import { logManagerAction } from "@/lib/audit";
+import { requireAdmin } from "@/lib/auth/admin";
+import { orgScopeWhere } from "@/lib/auth/org-scope";
+import { logAdminAction } from "@/lib/audit";
 import { invalidateTickets, validateInvalidateInput } from "@/lib/tickets/invalidate";
 
+// Invalidazione manuale lato superadmin: stessa logica condivisa del percorso
+// responsabile; ORG_ADMIN può agire solo su ticket di venue della propria
+// organizzazione (un ticket fuori scope invalida TUTTA la richiesta).
 export async function POST(req: NextRequest) {
-  const session = await requireStaffRole(["MANAGER"]).catch(() => null);
+  const session = await requireAdmin().catch(() => null);
   if (!session) return NextResponse.json({ ok: false, error: "Non autorizzato" }, { status: 401 });
 
   let body: { ticketIds?: unknown; reason?: unknown };
@@ -19,17 +23,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
   }
 
+  const scope = orgScopeWhere(session);
   const result = await invalidateTickets({
     ticketIds: parsed.ticketIds,
     reason: parsed.reason,
-    isVenueAllowed: (venue) => venue.id === session.venueId,
+    isVenueAllowed: (venue) =>
+      scope.isPlatform || venue.organizationId === scope.organizationId,
   });
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
   }
 
-  await logManagerAction({
-    operatorId: session.operatorId,
+  await logAdminAction({
+    adminUserId: session.adminUserId,
+    organizationId: result.organizationId,
     action: "TICKETS_INVALIDATED",
     targetType: "Ticket",
     payload: { ticketIds: parsed.ticketIds, reason: parsed.reason, count: parsed.ticketIds.length },

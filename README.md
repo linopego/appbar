@@ -4,6 +4,12 @@ Compri i drink prima, li ritiri con un QR.
 
 Klink è una piattaforma cashless multi-organizzazione basata su ticket prepagati con QR code. Supporta acquisto online con Stripe Connect, scansione POS al banco, pannelli per manager di venue, admin di organizzazione e admin di piattaforma. (Il repo si chiama `ticket-sistema`/`appbar` per ragioni storiche: il nome prodotto vive in `src/lib/brand.ts`.)
 
+> **Gerarchia dei ruoli (regola architetturale, vedi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):**
+> PLATFORM ⊇ ORG_ADMIN ⊇ Responsabile di locale. Ogni capacità di gestione di
+> un venue disponibile al responsabile DEVE essere disponibile, con lo scoping
+> corretto, anche ai livelli superiori dal pannello superadmin. Le funzioni
+> operative di banco (POS) restano dello staff.
+
 ## Prerequisiti
 
 - Node.js 20+
