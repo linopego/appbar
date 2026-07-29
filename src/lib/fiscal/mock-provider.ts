@@ -65,6 +65,10 @@ export class MockFiscalProvider implements FiscalProvider {
     if (this.behavior === "fail-permanent") {
       throw new FiscalProviderError("mock: errore definitivo", false);
     }
+    // Come il provider reale: la denominazione è obbligatoria (422/334)
+    if (!config.name?.trim()) {
+      throw new FiscalProviderError('mock HTTP 422: {"message":"The \'name\' is required","error":334}', false);
+    }
     this.registered = true;
     return {
       providerConfigurationId: `mock-config-${config.fiscalId ?? "senza-id"}`,

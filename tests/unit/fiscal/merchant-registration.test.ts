@@ -58,6 +58,8 @@ describe("OpenapiFiscalProvider — auto-riparazione del 424", () => {
     const secrets = { username: "sandbox", password: "sandbox", pin: "sandbox" };
     const config = {
       fiscalId: "12345678901",
+      name: "Bar Luna Srl",
+      email: "fiscale@barluna.it",
       encryptedSecrets: encryptFiscalSecrets(secrets),
     };
 
@@ -77,6 +79,8 @@ describe("OpenapiFiscalProvider — auto-riparazione del 424", () => {
     expect(registerUrl).toContain("/IT-configurations");
     const registerBody = JSON.parse(String(registerInit.body));
     expect(registerBody.fiscal_id).toBe("12345678901");
+    expect(registerBody.name).toBe("Bar Luna Srl");
+    expect(registerBody.email).toBe("fiscale@barluna.it");
     expect(registerBody.username).toBe("sandbox");
     expect(registerBody.pin).toBe("sandbox");
   });
@@ -90,7 +94,7 @@ describe("OpenapiFiscalProvider — auto-riparazione del 424", () => {
     await expect(
       provider.emitSaleDocument({
         ...SALE_INPUT,
-        venueFiscalConfig: { fiscalId: "12345678901" },
+        venueFiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl" },
       })
     ).rejects.toThrow(/500/);
     expect(fetchMock).toHaveBeenCalledTimes(2); // niente terzo tentativo di emissione
@@ -115,7 +119,7 @@ describe("OpenapiFiscalProvider — auto-riparazione del 424", () => {
       .mockResolvedValueOnce(response(200, { id: "cfg-2" })); // /IT_configurations
 
     const provider = new OpenapiFiscalProvider();
-    const result = await provider.registerMerchant({ fiscalId: "12345678901" });
+    const result = await provider.registerMerchant({ fiscalId: "12345678901", name: "Bar Luna Srl" });
 
     expect(result.providerConfigurationId).toBe("cfg-2");
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain("/IT_configurations");
@@ -126,12 +130,20 @@ describe("OpenapiFiscalProvider — auto-riparazione del 424", () => {
     await expect(provider.registerMerchant({})).rejects.toBeInstanceOf(FiscalProviderError);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("registerMerchant senza denominazione → errore chiaro senza chiamate al provider", async () => {
+    const provider = new OpenapiFiscalProvider();
+    await expect(provider.registerMerchant({ fiscalId: "12345678901" })).rejects.toThrow(
+      /denominazione/
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("MockFiscalProvider — scenario non registrato → registra → emetti ok", () => {
   it("l'emissione fallisce con 424 finché l'esercente non è censito, poi riesce", async () => {
     const provider = new MockFiscalProvider("not-registered");
-    const config = { fiscalId: "12345678901" };
+    const config = { fiscalId: "12345678901", name: "Bar Luna Srl" };
 
     await expect(
       provider.emitSaleDocument({ ...SALE_INPUT, venueFiscalConfig: config })
@@ -149,7 +161,7 @@ describe("MockFiscalProvider — scenario non registrato → registra → emetti
 describe("registerVenueMerchant — persistenza dell'id configurazione", () => {
   it("registra e salva providerConfigurationId dentro fiscalConfig", async () => {
     dbMock.venue.findUnique.mockResolvedValue({
-      fiscalConfig: { fiscalId: "12345678901", encryptedSecrets: "..." },
+      fiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl", encryptedSecrets: "..." },
     });
     dbMock.venue.update.mockResolvedValue({});
     const provider = new MockFiscalProvider("succeed");
@@ -160,6 +172,19 @@ describe("registerVenueMerchant — persistenza dell'id configurazione", () => {
     const update = dbMock.venue.update.mock.calls[0]?.[0];
     expect(update?.data.fiscalConfig.configurationId).toBe("mock-config-12345678901");
     expect(update?.data.fiscalConfig.fiscalId).toBe("12345678901"); // config preservata
+    expect(update?.data.fiscalConfig.name).toBe("Bar Luna Srl");
+  });
+
+  it("configurazione senza denominazione → errore chiaro senza chiamare il provider", async () => {
+    dbMock.venue.findUnique.mockResolvedValue({ fiscalConfig: { fiscalId: "12345678901" } });
+    const provider = new MockFiscalProvider("succeed");
+
+    const outcome = await registerVenueMerchant("ven-1", provider);
+
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.error).toContain("Denominazione");
+    expect(provider.registerCalls).toHaveLength(0);
+    expect(dbMock.venue.update).not.toHaveBeenCalled();
   });
 
   it("configurazione assente o senza fiscalId → errore 400 senza chiamare il provider", async () => {
@@ -174,7 +199,9 @@ describe("registerVenueMerchant — persistenza dell'id configurazione", () => {
   });
 
   it("provider in errore → esito negativo, nessuna scrittura", async () => {
-    dbMock.venue.findUnique.mockResolvedValue({ fiscalConfig: { fiscalId: "12345678901" } });
+    dbMock.venue.findUnique.mockResolvedValue({
+      fiscalConfig: { fiscalId: "12345678901", name: "Bar Luna Srl" },
+    });
     const provider = new MockFiscalProvider("fail-permanent");
 
     const outcome = await registerVenueMerchant("ven-1", provider);

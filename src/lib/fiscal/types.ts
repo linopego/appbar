@@ -13,10 +13,17 @@ export interface FiscalLine {
   vatRate: string; // es. "10.00", "22.00"
 }
 
-// Riferimenti dell'esercente presso il provider (MAI credenziali AdE in
-// chiaro: gli eventuali segreti stanno in encryptedSecrets, cifrati AES-GCM)
+// Anagrafica e riferimenti dell'esercente presso il provider (MAI credenziali
+// AdE in chiaro: gli eventuali segreti stanno in encryptedSecrets, cifrati
+// AES-GCM; i campi anagrafici NON sono segreti e restano in chiaro nel Json).
 export interface FiscalVenueConfig {
   fiscalId?: string; // P.IVA / identificativo fiscale dell'esercente
+  name?: string; // denominazione esercente (obbligatoria per il censimento)
+  email?: string;
+  address?: string;
+  city?: string;
+  province?: string; // sigla, es. "MI"
+  zip?: string; // CAP
   configurationId?: string; // id della configurazione presso il provider
   encryptedSecrets?: string;
   [key: string]: unknown;

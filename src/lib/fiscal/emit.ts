@@ -69,6 +69,13 @@ export async function registerVenueMerchant(
       error: "Configurazione esercente assente: salva prima l'identificativo fiscale",
     };
   }
+  if (!config.name?.trim()) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Denominazione esercente assente: salvala nella configurazione fiscale",
+    };
+  }
 
   try {
     const result = await provider.registerMerchant(config);
@@ -102,6 +109,22 @@ export function canEnableFiscal(
   }
   if (!fiscalConfig || typeof fiscalConfig !== "object") {
     return { ok: false, reason: "Configurazione esercente assente (a cura della piattaforma)" };
+  }
+  // Campi richiesti dal censimento presso il provider: identificativo
+  // fiscale e denominazione (senza, la registrazione fallirebbe con 422)
+  const config = fiscalConfig as FiscalVenueConfig;
+  const incomplete: string[] = [];
+  if (typeof config.fiscalId !== "string" || config.fiscalId.trim() === "") {
+    incomplete.push("identificativo fiscale");
+  }
+  if (typeof config.name !== "string" || config.name.trim() === "") {
+    incomplete.push("denominazione esercente");
+  }
+  if (incomplete.length > 0) {
+    return {
+      ok: false,
+      reason: `Configurazione esercente incompleta: ${incomplete.join(", ")} (a cura della piattaforma)`,
+    };
   }
   return { ok: true };
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
 import { logAdminAction } from "@/lib/audit";
 import { db } from "@/lib/db";
@@ -29,28 +30,46 @@ export async function PUT(
     return NextResponse.json({ ok: false, error: "Venue non trovata" }, { status: 404 });
   }
 
-  let body: { fiscalId?: unknown; configurationId?: unknown; secrets?: unknown };
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Corpo della richiesta non valido" }, { status: 400 });
   }
 
-  if (typeof body.fiscalId !== "string" || body.fiscalId.trim() === "") {
-    return NextResponse.json({ ok: false, error: "fiscalId è obbligatorio" }, { status: 400 });
+  // Anagrafica esercente per il censimento presso il provider: campi NON
+  // segreti, in chiaro nel Json; i segreti restano cifrati a parte.
+  const optionalTrimmed = z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : undefined));
+  const bodySchema = z.object({
+    fiscalId: z.string("fiscalId è obbligatorio").trim().min(1, "fiscalId è obbligatorio").max(50),
+    name: z
+      .string("La denominazione esercente è obbligatoria")
+      .trim()
+      .min(1, "La denominazione esercente è obbligatoria")
+      .max(200),
+    email: optionalTrimmed,
+    address: optionalTrimmed,
+    city: optionalTrimmed,
+    province: optionalTrimmed,
+    zip: optionalTrimmed,
+    configurationId: optionalTrimmed,
+    secrets: z.record(z.string(), z.unknown()).optional().nullable(),
+  });
+
+  const parsedBody = bodySchema.safeParse(rawBody);
+  if (!parsedBody.success) {
+    return NextResponse.json(
+      { ok: false, error: parsedBody.error.issues[0]?.message ?? "Dati non validi" },
+      { status: 400 }
+    );
   }
-  if (
-    body.configurationId !== undefined &&
-    body.configurationId !== null &&
-    typeof body.configurationId !== "string"
-  ) {
-    return NextResponse.json({ ok: false, error: "configurationId non valido" }, { status: 400 });
-  }
-  if (body.secrets !== undefined && body.secrets !== null) {
-    if (typeof body.secrets !== "object" || Array.isArray(body.secrets)) {
-      return NextResponse.json({ ok: false, error: "secrets deve essere un oggetto JSON" }, { status: 400 });
-    }
-  }
+  const body = parsedBody.data;
 
   const existing = (venue.fiscalConfig ?? {}) as FiscalVenueConfig;
 
@@ -58,12 +77,11 @@ export async function PUT(
   // secrets = {}   → li rimuove; secrets = {...} → li sostituisce (cifrati).
   let encryptedSecrets = existing.encryptedSecrets;
   if (body.secrets !== undefined && body.secrets !== null) {
-    const secrets = body.secrets as Record<string, unknown>;
-    if (Object.keys(secrets).length === 0) {
+    if (Object.keys(body.secrets).length === 0) {
       encryptedSecrets = undefined;
     } else {
       try {
-        encryptedSecrets = encryptFiscalSecrets(secrets);
+        encryptedSecrets = encryptFiscalSecrets(body.secrets);
       } catch {
         return NextResponse.json(
           { ok: false, error: "FISCAL_CONFIG_ENCRYPTION_KEY non configurata: impossibile cifrare i segreti" },
@@ -73,13 +91,16 @@ export async function PUT(
     }
   }
 
-  const configurationId =
-    typeof body.configurationId === "string" && body.configurationId.trim() !== ""
-      ? body.configurationId.trim()
-      : undefined;
+  const configurationId = body.configurationId;
 
   const fiscalConfig: FiscalVenueConfig = {
-    fiscalId: body.fiscalId.trim(),
+    fiscalId: body.fiscalId,
+    name: body.name,
+    ...(body.email ? { email: body.email } : {}),
+    ...(body.address ? { address: body.address } : {}),
+    ...(body.city ? { city: body.city } : {}),
+    ...(body.province ? { province: body.province } : {}),
+    ...(body.zip ? { zip: body.zip } : {}),
     ...(configurationId ? { configurationId } : {}),
     ...(encryptedSecrets ? { encryptedSecrets } : {}),
   };
@@ -98,6 +119,7 @@ export async function PUT(
     targetId: id,
     payload: {
       fiscalId: fiscalConfig.fiscalId,
+      name: fiscalConfig.name,
       configurationId: configurationId ?? null,
       hasSecrets: Boolean(encryptedSecrets),
     },
@@ -107,6 +129,7 @@ export async function PUT(
     ok: true,
     data: {
       fiscalId: fiscalConfig.fiscalId,
+      name: fiscalConfig.name,
       configurationId: configurationId ?? null,
       hasSecrets: Boolean(encryptedSecrets),
     },
