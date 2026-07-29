@@ -60,17 +60,25 @@ export interface FiscalRegisterResult {
 }
 
 // Errore tipizzato: retryable decide se la macchina a stati ritenta;
-// notRegistered marca il 424 "Fiscal ID not registered" del provider
-// (esercente mai censito → l'adapter tenta UNA registrazione automatica).
+// notRegistered marca il 424 "Fiscal ID not registered" (esercente mai
+// censito), receiptsNotEnabled il 174 "receipts service is not enabled"
+// (configurazione esistente ma senza il servizio scontrini): in entrambi i
+// casi l'adapter tenta UNA riparazione automatica della configurazione.
 export class FiscalProviderError extends Error {
   readonly retryable: boolean;
   readonly notRegistered: boolean;
+  readonly receiptsNotEnabled: boolean;
 
-  constructor(message: string, retryable: boolean, options?: { notRegistered?: boolean }) {
+  constructor(
+    message: string,
+    retryable: boolean,
+    options?: { notRegistered?: boolean; receiptsNotEnabled?: boolean }
+  ) {
     super(message);
     this.name = "FiscalProviderError";
     this.retryable = retryable;
     this.notRegistered = options?.notRegistered ?? false;
+    this.receiptsNotEnabled = options?.receiptsNotEnabled ?? false;
   }
 }
 

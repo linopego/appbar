@@ -25,10 +25,13 @@ import { decryptFiscalSecrets } from "./crypto";
 //       vat_rate_code, discount }], electronic_payment_amount }
 //   PATCH  /IT-receipts/{id}   registra un RESO (rimborso parziale)
 //   DELETE /IT-receipts/{id}   ANNULLO del documento (rimborso totale)
-//   POST   /IT-configurations  censisce l'esercente (fiscal_id + credenziali
+//   POST   /IT-configurations  censisce l'esercente (fiscal_id + anagrafica
+//     + receipts:true per abilitare il servizio scontrini + credenziali
 //     Fisconline dai segreti cifrati); OBBLIGATORIO prima della prima
 //     emissione, altrimenti HTTP 404 {"error":424, "Fiscal ID not found or
-//     not registered, use endpoint /IT_configurations to register it"}.
+//     not registered, use endpoint /IT_configurations to register it"};
+//     senza receipts:true l'emissione fallisce con HTTP 400 {"error":174,
+//     "receipts service is not enabled for the user"}.
 //     Il messaggio d'errore scrive il path con underscore: proviamo prima la
 //     forma documentata col trattino, poi quella del messaggio come fallback.
 //
@@ -147,10 +150,13 @@ export class OpenapiFiscalProvider implements FiscalProvider {
       const notRegistered =
         res.status === 404 &&
         (text.includes('"error":424') || /not (found or )?(not )?registered/i.test(text));
+      // 174: configurazione esistente ma senza servizio scontrini abilitato
+      const receiptsNotEnabled =
+        text.includes('"error":174') || /receipts service is not enabled/i.test(text);
       throw new FiscalProviderError(
         `Provider fiscale HTTP ${res.status}: ${text.slice(0, 300)}`,
         retryable,
-        { notRegistered }
+        { notRegistered, receiptsNotEnabled }
       );
     }
 
@@ -188,11 +194,14 @@ export class OpenapiFiscalProvider implements FiscalProvider {
       }
     }
 
-    // Anagrafica completa (solo i campi valorizzati) + segreti in passthrough
+    // Anagrafica completa (solo i campi valorizzati) + abilitazione del
+    // servizio scontrini (senza receipts:true il provider rifiuta le
+    // emissioni con 400 {"error":174}) + segreti in passthrough
     // (es. username/password/pin Fisconline, così come attesi dal provider)
     const payload = {
       fiscal_id: config.fiscalId,
       name: config.name.trim(),
+      receipts: true,
       ...(config.email?.trim() ? { email: config.email.trim() } : {}),
       ...(config.address?.trim() ? { address: config.address.trim() } : {}),
       ...(config.city?.trim() ? { city: config.city.trim() } : {}),
@@ -288,9 +297,12 @@ export class OpenapiFiscalProvider implements FiscalProvider {
     };
   }
 
-  // Auto-riparazione del 424: UNA registrazione automatica e UN solo nuovo
-  // tentativo di emissione. Se anche la registrazione fallisce, il suo errore
-  // resta visibile sul documento (lastError) come qualunque altro esito.
+  // Auto-riparazione della configurazione: UNA riparazione automatica e UN
+  // solo nuovo tentativo di emissione, sia per il 424 (esercente mai censito)
+  // sia per il 174 (configurazione esistente senza servizio scontrini —
+  // registerMerchant passa dal percorso "già esistente" e fa l'UPDATE con
+  // receipts:true). Se anche la riparazione fallisce, il suo errore resta
+  // visibile sul documento (lastError) come qualunque altro esito.
   private async withAutoRegistration<T>(
     config: FiscalVenueConfig,
     emit: () => Promise<T>
@@ -300,11 +312,13 @@ export class OpenapiFiscalProvider implements FiscalProvider {
     } catch (error) {
       if (
         error instanceof FiscalProviderError &&
-        error.notRegistered &&
+        (error.notRegistered || error.receiptsNotEnabled) &&
         config.fiscalId
       ) {
         console.warn(
-          `[Fiscale] esercente ${config.fiscalId} non censito presso il provider: registrazione automatica e nuovo tentativo di emissione`
+          error.notRegistered
+            ? `[Fiscale] esercente ${config.fiscalId} non censito presso il provider: registrazione automatica e nuovo tentativo di emissione`
+            : `[Fiscale] servizio scontrini non abilitato per ${config.fiscalId}: aggiorno la configurazione (receipts) e ritento l'emissione`
         );
         await this.registerMerchant(config);
         return await emit();

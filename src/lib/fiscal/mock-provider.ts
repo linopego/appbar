@@ -14,12 +14,15 @@ import {
 // finché registerMerchant non viene chiamato; "already-exists": la
 // configurazione esiste già presso il provider e registerMerchant la
 // recupera in modo idempotente).
+// "receipts-disabled": la configurazione esiste ma senza servizio scontrini
+// (le emissioni falliscono con 174 finché registerMerchant non la aggiorna).
 export type MockBehavior =
   | "succeed"
   | "fail-retryable"
   | "fail-permanent"
   | "not-registered"
-  | "already-exists";
+  | "already-exists"
+  | "receipts-disabled";
 
 export class MockFiscalProvider implements FiscalProvider {
   behavior: MockBehavior;
@@ -44,6 +47,13 @@ export class MockFiscalProvider implements FiscalProvider {
         'mock HTTP 404: {"success":false,"message":"Fiscal ID not found or not registered","error":424}',
         false,
         { notRegistered: true }
+      );
+    }
+    if (this.behavior === "receipts-disabled" && !this.registered) {
+      throw new FiscalProviderError(
+        'mock HTTP 400: {"message":"receipts service is not enabled for the user, set receipts to true in configuration","error":174}',
+        false,
+        { receiptsNotEnabled: true }
       );
     }
     return {
@@ -77,12 +87,14 @@ export class MockFiscalProvider implements FiscalProvider {
       throw new FiscalProviderError('mock HTTP 422: {"message":"The \'name\' is required","error":334}', false);
     }
     // "already-exists" (422/112): il POST fallirebbe, ma l'adapter recupera
-    // la configurazione esistente → esito comunque idempotente con id
-    if (this.behavior === "already-exists") {
+    // la configurazione esistente → esito comunque idempotente con id.
+    // "receipts-disabled" (400/174): stessa strada — la config esiste e viene
+    // AGGIORNATA (receipts:true), da lì le emissioni riescono.
+    if (this.behavior === "already-exists" || this.behavior === "receipts-disabled") {
       this.registered = true;
       return {
         providerConfigurationId: `existing-config-${config.fiscalId ?? "senza-id"}`,
-        raw: { mock: true, alreadyExisted: true },
+        raw: { mock: true, alreadyExisted: true, receiptsEnabled: true },
       };
     }
     this.registered = true;
